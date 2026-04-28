@@ -1,0 +1,193 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "System users with banking-specific designations",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "userId": { "type": "string", "description": "Banking Staff ID" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "branch": { "type": "string" },
+        "division": { "type": "string" },
+        "functionalDesignation": { "type": "string" },
+        "roleIds": { 
+          "type": "array", 
+          "items": { "type": "string" },
+          "description": "References to role document IDs"
+        },
+        "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "BLOCKED"] },
+        "isLocked": { "type": "boolean" },
+        "mustChangePassword": { "type": "boolean" },
+        "avatarUrl": { "type": "string" },
+        "displayPreferences": {
+          "type": "object",
+          "properties": {
+            "theme": { "type": "string", "enum": ["light", "dark", "system"] },
+            "notifications": { "type": "boolean" }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "email", "roleIds"]
+    },
+    "Role": {
+      "title": "Role",
+      "description": "Predefined banking roles",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "permissionIds": { 
+          "type": "array", 
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["name"]
+    },
+    "Permission": {
+      "title": "Permission",
+      "description": "Granular system rights",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "module": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "required": ["name", "module"]
+    },
+    "UserLeave": {
+      "title": "UserLeave",
+      "description": "Staff leave records",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "startDate": { "type": "string", "format": "date" },
+        "endDate": { "type": "string", "format": "date" },
+        "reason": { "type": "string" }
+      }
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Banking-grade audit traceability",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "action": { "type": "string" },
+        "description": { "type": "string" },
+        "ipAddress": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "UserGroup": {
+      "title": "UserGroup",
+      "description": "Defined user groups with assigned rights",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "rights": { 
+          "type": "array", 
+          "items": { "type": "string" },
+          "description": "List of right codes assigned to this group"
+        },
+        "status": { 
+          "type": "string", 
+          "enum": ["active", "inactive"],
+          "default": "active"
+        },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Priority banking customers",
+      "type": "object",
+      "properties": {
+        "customerId": { "type": "string" },
+        "name": { "type": "string" },
+        "segment": { "type": "string" },
+        "branch": { "type": "string" },
+        "rmId": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["customerId", "name"]
+    },
+    "ServiceRequest": {
+      "title": "ServiceRequest",
+      "description": "Service requests from customers",
+      "type": "object",
+      "properties": {
+        "requestId": { "type": "string" },
+        "customerId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "serviceType": { "type": "string" },
+        "stage": { "type": "string" },
+        "status": { "type": "string" },
+        "rmId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["requestId", "customerId", "serviceType"]
+    },
+    "BirthdayReminder": {
+      "title": "BirthdayReminder",
+      "description": "Reminders set for customer birthdays",
+      "type": "object",
+      "properties": {
+        "customerId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "reminderDate": { "type": "string", "format": "date" },
+        "message": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "dismissed"] },
+        "createdById": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["customerId", "reminderDate", "message"]
+    }
+  },
+  "firestore": {
+    "/birthdayReminders/{reminderId}": {
+      "schema": "BirthdayReminder",
+      "description": "Customer birthday reminders"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "System users collection"
+    },
+    "/userGroups/{groupId}": {
+      "schema": "UserGroup",
+      "description": "User groups and permissions"
+    },
+    "/customers/{customerId}": {
+      "schema": "Customer",
+      "description": "Bank customers"
+    },
+    "/userRequests/{requestId}": {
+      "schema": "ServiceRequest",
+      "description": "Service request lifecycle tracking"
+    },
+    "/roles/{roleId}": {
+      "schema": "Role",
+      "description": "Banking roles"
+    },
+    "/permissions/{permissionId}": {
+      "schema": "Permission",
+      "description": "System rights"
+    },
+    "/userLeaves/{leaveId}": {
+      "schema": "UserLeave",
+      "description": "Staff leave management"
+    },
+    "/auditLogs/{logId}": {
+      "schema": "AuditLog",
+      "description": "Immutable audit trail"
+    }
+  }
+}
