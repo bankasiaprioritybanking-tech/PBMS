@@ -35,6 +35,8 @@ interface Task {
   task_date?: string | null;
   assigned_to: string;
   linked_request_id?: string;
+  linked_visit_id?: string;
+  linked_lead_id?: string;
   task_type: string;
 }
 
@@ -583,6 +585,8 @@ function CreateTaskModal({
       setFormData((prev) => ({
         ...prev,
         linked_request_id: preselectedRequestId,
+        linked_visit_id: "",
+        linked_lead_id: "",
       }));
     }
   }, [preselectedRequestId, initialTask]);
@@ -717,6 +721,35 @@ function CreateTaskModal({
                   </option>
                 ))}
               </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-[#64748B] uppercase ml-1">
+                Linked Visit ID
+              </label>
+              <input
+                type="text"
+                value={formData.linked_visit_id || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, linked_visit_id: e.target.value })
+                }
+                className="w-full px-4 py-2.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] focus:border-[#D4AF37] outline-none transition-all text-sm font-medium"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-[#64748B] uppercase ml-1">
+                Linked Lead ID
+              </label>
+              <input
+                type="text"
+                value={formData.linked_lead_id || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, linked_lead_id: e.target.value })
+                }
+                className="w-full px-4 py-2.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] focus:border-[#D4AF37] outline-none transition-all text-sm font-medium"
+              />
             </div>
           </div>
 

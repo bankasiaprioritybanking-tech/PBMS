@@ -1,6 +1,6 @@
 {
-  "name": "Priority Banking Management System - Version-1.0",
-  "description": "A comprehensive management platform for priority banking services, including user management, service requests, customer profiles, and appointment scheduling.",
+  "name": "RM Customer Visit Management Module",
+  "description": "A focused module for relationship managers to plan customer visits, track sales opportunities, and monitor deposit commitments.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }

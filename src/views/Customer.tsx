@@ -12,27 +12,38 @@ import {
   Plus,
   Tag as TagIcon,
   X,
-  PlusCircle
+  PlusCircle,
+  BarChart3
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState } from 'react';
 
 const tabs = [
+  { id: 'overview', label: 'Overview & Segmentation', icon: BarChart3 },
   { id: 'personal', label: 'Personal Information', icon: User },
   { id: 'banking', label: 'Banking Information', icon: Building2 },
   { id: 'family', label: 'Family Information', icon: Users },
   { id: 'contact', label: 'Contact Information', icon: PhoneCall },
   { id: 'interest', label: 'Interest Information', icon: Star },
   { id: 'docs', label: 'Scanned Documents', icon: FileSearch },
-  { id: 'llc', label: 'LLC (Lifestyle)', icon: Coffee },
+  { id: 'llc', label: 'Lifestyle', icon: Coffee },
   { id: 'other', label: 'Other', icon: MoreHorizontal },
 ];
 
 export default function Customer() {
-  const [activeTab, setActiveTab] = useState('personal');
+  const [activeTab, setActiveTab] = useState('overview');
   const [tags, setTags] = useState<string[]>(['VIP', 'High Value']);
   const [newTag, setNewTag] = useState('');
   const [isAddingTag, setIsAddingTag] = useState(false);
+  const [selectedRM, setSelectedRM] = useState('All');
+
+  const rmData = {
+    All: { vip: 5, priority: 12, normal: 25, b1: 10, b2: 20, b3: 12 },
+    Sabiha: { vip: 2, priority: 5, normal: 8, b1: 4, b2: 7, b3: 4 },
+    Sultana: { vip: 3, priority: 7, normal: 17, b1: 6, b2: 13, b3: 8 },
+  };
+
+  const data = rmData[selectedRM as keyof typeof rmData];
 
   const handleAddTag = () => {
     if (newTag.trim() && !tags.includes(newTag.trim())) {
@@ -174,6 +185,48 @@ export default function Customer() {
               <p className="text-sm text-[#64748B] mt-1">Please provide accurate information as per Finacle & Tranzware records.</p>
             </div>
 
+            {activeTab === 'overview' && (
+              <div className="space-y-6">
+                <div className="flex items-center gap-4 bg-[#F8FAFC] p-4 rounded-xl border border-[#E2E8F0] w-fit">
+                  <label className="text-sm font-bold text-[#64748B]">Filter by RM:</label>
+                  <select
+                    className="px-4 py-2 bg-white rounded-lg border border-[#E2E8F0] text-sm font-bold text-[#0F172A] outline-none"
+                    value={selectedRM}
+                    onChange={(e) => setSelectedRM(e.target.value)}
+                  >
+                    <option value="All">All RMs</option>
+                    <option value="Sabiha">Sabiha</option>
+                    <option value="Sultana">Sultana</option>
+                  </select>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-[#F8FAFC] p-6 rounded-2xl border border-[#E2E8F0]">
+                    <h4 className="font-bold text-[#0F172A] mb-4">By Segment</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between"><span className="text-sm">VIP</span><span className="font-bold">{data.vip}</span></div>
+                      <div className="flex justify-between"><span className="text-sm">Priority</span><span className="font-bold">{data.priority}</span></div>
+                      <div className="flex justify-between"><span className="text-sm">Normal</span><span className="font-bold">{data.normal}</span></div>
+                    </div>
+                  </div>
+                  <div className="bg-[#F8FAFC] p-6 rounded-2xl border border-[#E2E8F0]">
+                    <h4 className="font-bold text-[#0F172A] mb-4">By Balance</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between"><span className="text-sm">&lt; 1M</span><span className="font-bold">{data.b1}</span></div>
+                      <div className="flex justify-between"><span className="text-sm">1M - 5M</span><span className="font-bold">{data.b2}</span></div>
+                      <div className="flex justify-between"><span className="text-sm">&gt; 5M</span><span className="font-bold">{data.b3}</span></div>
+                    </div>
+                  </div>
+                  <div className="bg-[#F8FAFC] p-6 rounded-2xl border border-[#E2E8F0]">
+                    <h4 className="font-bold text-[#0F172A] mb-4">By RM</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between"><span className="text-sm">Sabiha</span><span className="font-bold">{selectedRM === 'Sabiha' ? '15' : selectedRM === 'All' ? '15' : '0'}</span></div>
+                      <div className="flex justify-between"><span className="text-sm">Sultana</span><span className="font-bold">{selectedRM === 'Sultana' ? '27' : selectedRM === 'All' ? '27' : '0'}</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {activeTab === 'personal' && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <div className="space-y-2">

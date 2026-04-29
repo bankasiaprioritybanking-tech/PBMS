@@ -17,6 +17,8 @@ import { motion } from 'motion/react';
 import { useState } from 'react';
 import DashboardThumbnail from '../components/DashboardThumbnail';
 import ModulePlaceholder from '../components/shared/ModulePlaceholder';
+import RMVisitDashboard from './RMVisitDashboard';
+import RMVisitCalendar from './RMVisitCalendar';
 
 const stats = [
   { label: 'Live VAS Requests', value: '42', icon: Clock, color: 'bg-amber-50 text-[#D4AF37]', trend: '+12%' },
@@ -117,7 +119,7 @@ const QuickActionDesk = () => {
 export default function Dashboard() {
   const userRole = 'Priority Relationship Manager (PRM)';
   const tabs = [
-      'RM Home', 'Customer 360°', 'Portfolio & Growth', 'Service Request', 'VAS Request', 
+      'RM Home', 'RM Visit Module', 'Visit Calendar', 'Customer 360°', 'Portfolio & Growth', 'Service Request', 'VAS Request', 
       'Card & Cheque Support', 'Complaint & Escalation', 'Important Links', 'Forms & Templates', 
       'Daily RM Checklist', 'Management MIS'
   ];
@@ -154,9 +156,11 @@ export default function Dashboard() {
       </div>
 
       {activeTab === 'RM Home' && <RoleDashboard roleName={userRole} />}
+      {activeTab === 'RM Visit Module' && <RMVisitDashboard />}
+      {activeTab === 'Visit Calendar' && <RMVisitCalendar />}
       {activeTab === 'Important Links' && <QuickActionDesk />}
 
-      {!['RM Home', 'Important Links'].includes(activeTab) && (
+      {!['RM Home', 'Important Links', 'RM Visit Module', 'Visit Calendar'].includes(activeTab) && (
         <ModulePlaceholder 
           title={`${activeTab} Interface`}
           message={`The digital environment for ${activeTab} is currently being synchronized with the backend systems. Full analytical capabilities will be available shortly.`}

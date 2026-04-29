@@ -199,27 +199,33 @@ export default function Reports() {
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
             />
-            <select 
-              className="px-4 py-2 bg-[#F8FAFC] rounded-xl text-sm font-bold text-[#64748B] border-none outline-none focus:ring-2 focus:ring-[#D4AF37]/20"
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-            >
-              <option value="all">All Categories</option>
-              <option value="on_request">On Request</option>
-              <option value="annual_service">Annual Service</option>
-              <option value="coupon_based">Coupon Based</option>
-            </select>
-            <select 
-              className="px-4 py-2 bg-[#F8FAFC] rounded-xl text-sm font-bold text-[#64748B] border-none outline-none focus:ring-2 focus:ring-[#D4AF37]/20"
-              value={serviceTypeFilter}
-              onChange={(e) => setServiceTypeFilter(e.target.value)}
-            >
-              <option value="all">All Types</option>
-              <option value="meet_greet">Meet & Greet</option>
-              <option value="lounge_access">Lounge Access</option>
-              <option value="concierge">Concierge</option>
-              <option value="finance_consult">Finance Consult</option>
-            </select>
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-bold text-[#64748B]">Category:</label>
+              <select 
+                className="px-4 py-2 bg-[#F8FAFC] rounded-xl text-sm font-bold text-[#64748B] border-none outline-none focus:ring-2 focus:ring-[#D4AF37]/20"
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+              >
+                <option value="all">All Categories</option>
+                <option value="on_request">On Request</option>
+                <option value="annual_service">Annual Service</option>
+                <option value="coupon_based">Coupon Based</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-bold text-[#64748B]">Type:</label>
+              <select 
+                className="px-4 py-2 bg-[#F8FAFC] rounded-xl text-sm font-bold text-[#64748B] border-none outline-none focus:ring-2 focus:ring-[#D4AF37]/20"
+                value={serviceTypeFilter}
+                onChange={(e) => setServiceTypeFilter(e.target.value)}
+              >
+                <option value="all">All Types</option>
+                <option value="meet_greet">Meet & Greet</option>
+                <option value="lounge_access">Lounge Access</option>
+                <option value="concierge">Concierge</option>
+                <option value="finance_consult">Finance Consult</option>
+              </select>
+            </div>
           </div>
         </div>
         
