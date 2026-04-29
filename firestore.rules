@@ -76,17 +76,11 @@ service cloud.firestore {
     }
 
     // Entity Validations
-    function isValidUser(data) {
-      return data.keys().hasAll(['uid', 'name', 'email', 'roleIds']) &&
-             data.uid is string && data.uid.size() <= 128 &&
-             data.name is string && data.name.size() <= 100 &&
-             data.email is string && data.email.size() <= 100 &&
-             data.roleIds is list;
-    }
-
     function isValidRole(data) {
       return data.keys().hasAll(['name']) &&
              data.name is string && data.name.size() <= 100 &&
+             (!data.keys().hasAny(['description']) || data.description is string) &&
+             (!data.keys().hasAny(['parentRoleId']) || (data.parentRoleId is string || data.parentRoleId == null)) &&
              (!data.keys().hasAny(['permissionIds']) || data.permissionIds is list);
     }
 
@@ -106,10 +100,23 @@ service cloud.firestore {
     }
 
     function isValidServiceRequest(data) {
-      return data.keys().hasAll(['requestId', 'customerId', 'serviceType', 'stage', 'status', 'createdAt']) &&
-             data.requestId is string && data.requestId.size() <= 64 &&
-             data.customerId is string && data.serviceType is string &&
-             data.stage is string && data.status is string &&
+      return data.keys().hasAll(['customer_name', 'service_type', 'created_by', 'createdAt']) &&
+             (!data.keys().hasAny(['request_id']) || data.request_id is string) &&
+             (!data.keys().hasAny(['customer_id']) || data.customer_id is string) &&
+             data.customer_name is string && data.service_type is string &&
+             (!data.keys().hasAny(['service_category']) || data.service_category in ["on_request", "annual_service", "coupon_based"]) &&
+             (!data.keys().hasAny(['description']) || data.description is string) &&
+             (!data.keys().hasAny(['priority']) || data.priority in ["low", "medium", "high", "urgent"]) &&
+             (!data.keys().hasAny(['status']) || data.status in ["draft", "pending_cm", "pending_hopb", "in_progress", "awaiting_customer", "approved", "rejected", "resolved", "completed"]) &&
+             (!data.keys().hasAny(['assigned_to']) || data.assigned_to is string) &&
+             (!data.keys().hasAny(['cm_approval']) || data.cm_approval in ["pending", "approved", "rejected"]) &&
+             (!data.keys().hasAny(['hopb_approval']) || data.hopb_approval in ["pending", "approved", "rejected"]) &&
+             (!data.keys().hasAny(['cm_remarks']) || data.cm_remarks is string) &&
+             (!data.keys().hasAny(['hopb_remarks']) || data.hopb_remarks is string) &&
+             (!data.keys().hasAny(['due_date']) || data.due_date is string) &&
+             (!data.keys().hasAny(['cost']) || data.cost is number) &&
+             (!data.keys().hasAny(['documents']) || data.documents is list) &&
+             data.created_by == request.auth.token.email &&
              data.createdAt == request.time;
     }
 
@@ -124,6 +131,10 @@ service cloud.firestore {
       return data.keys().hasAll(['customerId', 'customerName', 'reminderDate', 'message', 'status', 'createdById', 'createdAt']) &&
              data.customerId is string && data.customerName is string &&
              data.reminderDate is string && data.message is string && data.message.size() <= 500 &&
+             (!data.keys().hasAny(['sendEmail']) || data.sendEmail is bool) &&
+             (!data.keys().hasAny(['customerEmail']) || data.customerEmail is string) &&
+             (!data.keys().hasAny(['emailSubject']) || data.emailSubject is string) &&
+             (!data.keys().hasAny(['emailBody']) || data.emailBody is string) &&
              data.status in ['pending', 'dismissed'] &&
              data.createdById == request.auth.uid &&
              data.createdAt == request.time;
@@ -133,6 +144,16 @@ service cloud.firestore {
       return data.keys().hasAll(['userId', 'action', 'description', 'createdAt']) &&
              data.userId == request.auth.uid &&
              data.action is string &&
+             data.createdAt == request.time;
+    }
+
+    function isValidSystemParameter(data) {
+      return data.keys().hasAll(['param_key', 'param_value', 'createdAt']) &&
+             data.param_key is string && data.param_key.size() <= 64 &&
+             data.param_value is string && data.param_value.size() <= 1024 &&
+             (!data.keys().hasAny(['category']) || data.category in ["general", "email", "sms", "notification", "service", "threshold"]) &&
+             (!data.keys().hasAny(['description']) || data.description is string && data.description.size() <= 2048) &&
+             (!data.keys().hasAny(['is_active']) || data.is_active is bool) &&
              data.createdAt == request.time;
     }
 
@@ -189,6 +210,14 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // systemParameters
+    match /systemParameters/{parameterId} {
+      allow read: if isSignedIn();
+      allow create: if isAdmin() && isValidSystemParameter(incoming());
+      allow update: if isAdmin() && isValidSystemParameter(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['param_value', 'category', 'description', 'is_active', 'updatedAt']) && incoming().updatedAt == request.time;
+      allow delete: if isAdmin();
+    }
+
     // customers
     match /customers/{customerId} {
       allow read: if isSignedIn();
@@ -197,10 +226,32 @@ service cloud.firestore {
     }
 
     // userRequests (formerly ServiceRequests)
+    function isTeamLead() {
+      return isSignedIn() && (
+        isAdmin() || 
+        (request.auth.token.email.matches('.*@bankasia-bd\\.com$') && getUserData().roleIds.hasAny(['team_lead', 'TEAM_LEAD']))
+      );
+    }
+
     match /userRequests/{requestId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && isValidServiceRequest(incoming()) && exists(/databases/$(database)/documents/customers/$(incoming().customerId));
-      allow update: if isSignedIn() && isValidServiceRequest(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['stage', 'status', 'updatedAt']);
+      allow read: if isSignedIn() && (
+        resource.data.created_by == request.auth.token.email ||
+        resource.data.assigned_to == request.auth.token.email ||
+        resource.data.customer_id == request.auth.token.email ||
+        isAdmin() ||
+        isTeamLead()
+      );
+      allow create: if isSignedIn() && 
+                    isValidServiceRequest(incoming()) && 
+                    incoming().created_by == request.auth.token.email;
+      allow update: if isSignedIn() && (
+        existing().created_by == request.auth.token.email ||
+        existing().assigned_to == request.auth.token.email ||
+        isAdmin() ||
+        isTeamLead()
+      ) && incoming().created_by == existing().created_by && 
+           incoming().updatedAt == request.time;
+      allow delete: if isAdmin();
     }
 
     // birthdayReminders
@@ -208,7 +259,7 @@ service cloud.firestore {
       allow read: if isSignedIn() && (isAdmin() || resource.data.createdById == request.auth.uid);
       allow create: if isSignedIn() && isValidBirthdayReminder(incoming());
       allow update: if isSignedIn() && resource.data.createdById == request.auth.uid && 
-                     incoming().diff(existing()).affectedKeys().hasOnly(['status', 'message', 'reminderDate']) &&
+                     incoming().diff(existing()).affectedKeys().hasOnly(['status', 'message', 'reminderDate', 'sendEmail', 'customerEmail', 'emailSubject', 'emailBody', 'updatedAt']) &&
                      isValidBirthdayReminder(incoming()) &&
                      incoming().createdById == existing().createdById;
       allow delete: if isSignedIn() && (isAdmin() || resource.data.createdById == request.auth.uid);

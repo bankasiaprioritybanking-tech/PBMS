@@ -6,18 +6,23 @@ import {
   DollarSign,
   Plus,
   Search,
-  ChevronRight
+  ChevronRight,
+  Workflow
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useNavigate } from 'react-router-dom';
 
 const setupSections = [
-  { id: 'vas', title: 'Vas Service', description: 'Configure customer service options and parameters.', icon: Layers },
-  { id: 'param', title: 'Parameter', description: 'System-wide constants and configuration values.', icon: Sliders },
-  { id: 'alarm', title: 'Alarm Clock Setup', description: 'Manage automated reminders and notifications.', icon: Watch },
-  { id: 'cost', title: 'Service Cost Setup', description: 'Define pricing and resource costs for services.', icon: DollarSign },
+  { id: 'vas', title: 'Vas Service', description: 'Configure customer service options and parameters.', icon: Layers, path: '/system-setup' },
+  { id: 'param', title: 'Parameter', description: 'System-wide constants and configuration values.', icon: Sliders, path: '/system-setup' },
+  { id: 'workflow', title: 'Workflow Rules', description: 'Manage automated routing and assignments for service requests.', icon: Workflow, path: '/workflow-rules' },
+  { id: 'alarm', title: 'Alarm Clock Setup', description: 'Manage automated reminders and notifications.', icon: Watch, path: '/system-setup' },
+  { id: 'cost', title: 'Service Cost Setup', description: 'Define pricing and resource costs for services.', icon: DollarSign, path: '/system-setup' },
 ];
 
 export default function SystemSetup() {
+  const navigate = useNavigate();
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-1">
@@ -25,14 +30,15 @@ export default function SystemSetup() {
         <p className="text-[#94A3B8]">Configure core architecture and operational parameters of PBMS.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {setupSections.map((section, i) => (
           <motion.div
             key={section.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="bg-white/5 backdrop-blur-xl border border-white/10 p-8 rounded-[40px] group hover:bg-white/10 transition-all cursor-pointer shadow-2xl"
+            onClick={() => navigate(section.path)}
+            className="bg-white/5 backdrop-blur-xl border border-white/10 p-8 rounded-[40px] group hover:bg-white/10 transition-all cursor-pointer shadow-2xl flex flex-col h-full"
           >
             <div className="flex items-start justify-between mb-6">
               <div className="p-4 bg-[#D4AF37] rounded-2xl text-[#0F172A] shadow-lg shadow-[#D4AF37]/20">
@@ -44,9 +50,9 @@ export default function SystemSetup() {
             </div>
             
             <h3 className="text-xl font-bold text-white mb-2">{section.title}</h3>
-            <p className="text-[#64748B] text-sm leading-relaxed mb-6">{section.description}</p>
+            <p className="text-[#64748B] text-sm leading-relaxed mb-6 flex-1">{section.description}</p>
             
-            <div className="flex items-center justify-between pt-6 border-t border-white/5">
+            <div className="flex items-center justify-between pt-6 border-t border-white/5 mt-auto">
               <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-[#D4AF37]">Management Interface</span>
               <ChevronRight size={18} className="text-[#64748B] group-hover:translate-x-1 transition-transform" />
             </div>

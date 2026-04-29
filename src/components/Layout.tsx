@@ -18,7 +18,10 @@ import {
   Menu,
   ChevronRight,
   LogOut,
-  ChevronDown
+  ChevronDown,
+  Workflow,
+  FileText,
+  BarChart3
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link, useLocation } from 'react-router-dom';
@@ -39,6 +42,8 @@ const sidebarItems = [
     path: '/system-setup',
     subItems: ['Vas Service', 'Parameter', 'Alarm Clock Setup', 'Service Cost Setup']
   },
+  { id: 'workflow-rules', label: 'Workflow Rules', icon: Workflow, path: '/workflow-rules' },
+  { id: 'task-management', label: 'Task Mgmt', icon: ListTodo, path: '/task-management' },
   { id: 'parameter-entry', label: 'Parameter Entry', icon: ListTodo, path: '/parameter-entry' },
   { id: 'other', label: 'Other', icon: HelpCircle, path: '/other', subItems: ['News and Events'] },
   { 
@@ -48,6 +53,14 @@ const sidebarItems = [
     path: '/service-request',
     subItems: ['Value Added Service (VAS)', 'Manage Service Request', 'CM Approval', 'HOPB Approval']
   },
+  { 
+    id: 'bill-management', 
+    label: 'Bill Management', 
+    icon: FileText, 
+    path: '/bill-management',
+    subItems: ['Bill Generator', 'Charge Waiver Approval']
+  },
+  { id: 'reports', label: 'Reports', icon: BarChart3, path: '/reports' },
   { id: 'customer', label: 'Customer', icon: UserCircle, path: '/customer' },
   { 
     id: 'annual-service', 

@@ -14,8 +14,14 @@ import SystemSetup from './views/SystemSetup';
 import Appointments from './views/Appointments';
 import AnnualService from './views/AnnualService';
 import ParameterEntry from './views/ParameterEntry';
+import WorkflowRules from './views/WorkflowRules';
+import TaskManagement from './views/TaskManagement';
+import Reports from './views/Reports';
+import BillManagement from './views/BillManagement';
 import SmsGateway from './views/SmsGateway';
 import Login from './views/Login';
+import Profile from './views/Profile';
+import { ThemeProvider } from './lib/ThemeContext';
 import { Construction } from 'lucide-react';
 
 const UnderConstruction = ({ title }: { title: string }) => (
@@ -30,10 +36,6 @@ const UnderConstruction = ({ title }: { title: string }) => (
     </p>
   </div>
 );
-
-import Profile from './views/Profile';
-
-import { ThemeProvider } from './lib/ThemeContext';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -51,8 +53,12 @@ export default function App() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/user-management" element={<UserManagement />} />
               <Route path="/system-setup" element={<SystemSetup />} />
+              <Route path="/workflow-rules" element={<WorkflowRules />} />
+              <Route path="/task-management" element={<TaskManagement />} />
+              <Route path="/reports" element={<Reports />} />
               <Route path="/parameter-entry" element={<ParameterEntry />} />
               <Route path="/service-request" element={<ServiceRequest />} />
+              <Route path="/bill-management" element={<BillManagement />} />
               <Route path="/customer" element={<Customer />} />
               <Route path="/annual-service" element={<AnnualService />} />
               <Route path="/appointments" element={<Appointments />} />

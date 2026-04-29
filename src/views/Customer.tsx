@@ -9,7 +9,10 @@ import {
   MoreHorizontal,
   Save,
   Trash2,
-  Plus
+  Plus,
+  Tag as TagIcon,
+  X,
+  PlusCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState } from 'react';
@@ -27,6 +30,21 @@ const tabs = [
 
 export default function Customer() {
   const [activeTab, setActiveTab] = useState('personal');
+  const [tags, setTags] = useState<string[]>(['VIP', 'High Value']);
+  const [newTag, setNewTag] = useState('');
+  const [isAddingTag, setIsAddingTag] = useState(false);
+
+  const handleAddTag = () => {
+    if (newTag.trim() && !tags.includes(newTag.trim())) {
+      setTags([...tags, newTag.trim()]);
+      setNewTag('');
+      setIsAddingTag(false);
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setTags(tags.filter(tag => tag !== tagToRemove));
+  };
 
   return (
     <div className="space-y-8 pb-12">
@@ -54,11 +72,71 @@ export default function Customer() {
           <User size={48} className="text-[#D4AF37]" />
         </div>
         <div className="flex-1 text-center md:text-left relative z-10">
-          <h2 className="text-2xl font-bold mb-1">New Customer Entry</h2>
-          <p className="text-[#94A3B8] text-sm mb-4">Complete all required fields below to register a priority member.</p>
-          <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-            <span className="px-3 py-1 bg-white/10 rounded-lg text-[11px] font-bold uppercase tracking-widest border border-white/5">Status: Draft</span>
-            <span className="px-3 py-1 bg-white/10 rounded-lg text-[11px] font-bold uppercase tracking-widest border border-white/5">Created by: John Doe (Admin)</span>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+            <div>
+              <h2 className="text-2xl font-bold mb-1">New Customer Entry</h2>
+              <p className="text-[#94A3B8] text-sm italic font-display">Priority Relationship Onboarding</p>
+            </div>
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
+               <span className="px-3 py-1 bg-white/10 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-white/5">Status: Draft</span>
+            </div>
+          </div>
+          
+          {/* Tagging System */}
+          <div className="flex flex-wrap items-center gap-2 mt-4">
+            <div className="p-1.5 bg-[#D4AF37]/20 rounded-lg text-[#D4AF37]">
+              <TagIcon size={14} />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {tags.map((tag) => (
+                <span 
+                  key={tag} 
+                  className="flex items-center gap-1.5 pl-3 pr-2 py-1 bg-white/5 border border-white/10 rounded-full text-[10px] font-bold uppercase tracking-wider group hover:bg-[#D4AF37]/10 hover:border-[#D4AF37]/30 transition-all"
+                >
+                  {tag}
+                  <button 
+                    onClick={() => removeTag(tag)}
+                    className="p-0.5 rounded-full hover:bg-white/10 text-white/40 hover:text-white transition-all"
+                  >
+                    <X size={10} />
+                  </button>
+                </span>
+              ))}
+              
+              {isAddingTag ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={newTag}
+                    onChange={(e) => setNewTag(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddTag()}
+                    placeholder="New tag..."
+                    className="px-3 py-1 bg-white/10 border border-[#D4AF37] rounded-full text-[10px] outline-none text-white focus:ring-1 focus:ring-[#D4AF37]"
+                    autoFocus
+                  />
+                  <button 
+                    onClick={handleAddTag}
+                    className="p-1 bg-[#D4AF37] text-[#0F172A] rounded-full"
+                  >
+                    <Plus size={10} />
+                  </button>
+                  <button 
+                    onClick={() => setIsAddingTag(false)}
+                    className="p-1 bg-white/10 text-white rounded-full"
+                  >
+                    <X size={10} />
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={() => setIsAddingTag(true)}
+                  className="flex items-center gap-1.5 px-3 py-1 bg-white/5 border border-dashed border-white/20 rounded-full text-[10px] font-bold text-white/60 hover:text-[#D4AF37] hover:border-[#D4AF37] transition-all"
+                >
+                  <PlusCircle size={10} />
+                  Add Label
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -16,6 +16,7 @@ import {
 import { motion } from 'motion/react';
 import { useState } from 'react';
 import DashboardThumbnail from '../components/DashboardThumbnail';
+import ModulePlaceholder from '../components/shared/ModulePlaceholder';
 
 const stats = [
   { label: 'Live VAS Requests', value: '42', icon: Clock, color: 'bg-amber-50 text-[#D4AF37]', trend: '+12%' },
@@ -154,6 +155,13 @@ export default function Dashboard() {
 
       {activeTab === 'RM Home' && <RoleDashboard roleName={userRole} />}
       {activeTab === 'Important Links' && <QuickActionDesk />}
+
+      {!['RM Home', 'Important Links'].includes(activeTab) && (
+        <ModulePlaceholder 
+          title={`${activeTab} Interface`}
+          message={`The digital environment for ${activeTab} is currently being synchronized with the backend systems. Full analytical capabilities will be available shortly.`}
+        />
+      )}
 
       <p className="text-[11px] text-[#64748B] p-4 bg-[#F8FAFC] rounded-2xl italic border border-[#F1F5F9]">
         “Tools, resources, and policy links are centralized here for RM efficiency. Please ensure compliance and confirm information accuracy from official sources.”

@@ -162,6 +162,7 @@ export default function UserManagement() {
   const [selectedInheritedRoleId, setSelectedInheritedRoleId] = useState<string>('');
   const [searchTermRoles, setSearchTermRoles] = useState('');
   const [searchTermPerm, setSearchTermPerm] = useState('');
+  const [searchTermDetailPerm, setSearchTermDetailPerm] = useState('');
   
   const [idToInspect, setIdToInspect] = useState<string | null>(null);
   const [inspectingRights, setInspectingRights] = useState<any>(null);
@@ -250,6 +251,14 @@ export default function UserManagement() {
     }
   };
 
+  const isCircular = (roleId: string, potentialParentId: string): boolean => {
+    if (!potentialParentId) return false;
+    if (roleId === potentialParentId) return true;
+    const parent = roles.find(r => r.id === potentialParentId);
+    if (!parent || !parent.parentRoleId) return false;
+    return isCircular(roleId, parent.parentRoleId);
+  };
+
   const getEffectivePermissionIds = (roleId: string, currentRoles: Role[]): string[] => {
     const role = currentRoles.find(r => r.id === roleId);
     if (!role) return [];
@@ -282,6 +291,13 @@ export default function UserManagement() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+
+  const currentUser = users.find(u => u.uid === auth.currentUser?.uid);
+  const currentUserPermissions = currentUser ? currentUser.roleIds.flatMap(rid => getEffectivePermissionIds(rid, roles)) : [];
+  const hasPermission = (permName: string) => {
+    const perm = permissions.find(p => p.name === permName);
+    return perm ? currentUserPermissions.includes(perm.id) : false;
+  };
 
   useEffect(() => {
     setIsLoading(true);
@@ -334,6 +350,41 @@ export default function UserManagement() {
            log.description.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
+  const handleUpdateStatus = async (user: User, value: string) => {
+    try {
+      if (value === 'LOCKED') {
+        if (!user.isLocked) {
+          await updateDoc(doc(db, 'users', user.id), {
+            isLocked: true,
+            updatedAt: serverTimestamp()
+          });
+          await addDoc(collection(db, 'auditLogs'), {
+            userId: auth.currentUser?.uid || 'unknown',
+            targetUserId: user.uid,
+            action: 'lock',
+            description: `Account locked for ${user.name}`,
+            createdAt: serverTimestamp()
+          });
+        }
+      } else {
+        const updates: any = { status: value, updatedAt: serverTimestamp() };
+        if (user.isLocked) {
+          updates.isLocked = false;
+        }
+        await updateDoc(doc(db, 'users', user.id), updates);
+        await addDoc(collection(db, 'auditLogs'), {
+          userId: auth.currentUser?.uid || 'unknown',
+          targetUserId: user.uid,
+          action: 'update_status',
+          description: `Status updated to ${value}${user.isLocked ? ' (and unlocked)' : ''} for ${user.name}`,
+          createdAt: serverTimestamp()
+        });
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'users');
+    }
+  };
+
   const handleToggleLock = async (user: User) => {
     try {
       const isLocking = !user.isLocked;
@@ -359,7 +410,11 @@ export default function UserManagement() {
       const response = await fetch('/api/v1/users/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email, userId: user.uid })
+        body: JSON.stringify({ 
+          email: user.email, 
+          userId: user.uid,
+          adminId: auth.currentUser?.uid
+        })
       });
       
       const result = await response.json();
@@ -444,26 +499,34 @@ export default function UserManagement() {
     if (!newRoleName.trim()) return;
 
     try {
-      const inheritedRole = roles.find(r => r.id === selectedInheritedRoleId);
-      const allPermissionIds = Array.from(new Set([
-        ...selectedPermissions,
-        ...(inheritedRole ? inheritedRole.permissionIds : [])
-      ]));
-
       if (editingRole) {
         await updateDoc(doc(db, 'roles', editingRole.id), {
           name: newRoleName,
           description: newRoleDesc,
-          permissionIds: allPermissionIds,
+          permissionIds: selectedPermissions,
           parentRoleId: selectedInheritedRoleId || null,
           updatedAt: serverTimestamp()
         });
+        await addDoc(collection(db, 'auditLogs'), {
+          userId: auth.currentUser?.uid || 'unknown',
+          targetUserId: editingRole.id,
+          action: 'edit_role',
+          description: `Role updated: ${newRoleName}`,
+          createdAt: serverTimestamp()
+        });
       } else {
-        await addDoc(collection(db, 'roles'), {
+        const docRef = await addDoc(collection(db, 'roles'), {
           name: newRoleName,
           description: newRoleDesc,
-          permissionIds: allPermissionIds,
+          permissionIds: selectedPermissions,
           parentRoleId: selectedInheritedRoleId || null,
+          createdAt: serverTimestamp()
+        });
+        await addDoc(collection(db, 'auditLogs'), {
+          userId: auth.currentUser?.uid || 'unknown',
+          targetUserId: docRef.id,
+          action: 'create_role',
+          description: `New role created: ${newRoleName}`,
           createdAt: serverTimestamp()
         });
       }
@@ -554,12 +617,23 @@ export default function UserManagement() {
     ];
 
     const permissionsToSeed = [
-      { name: 'CREATE_USER', module: 'User Management' },
-      { name: 'EDIT_USER', module: 'User Management' },
-      { name: 'DELETE_USER', module: 'User Management' },
-      { name: 'RESET_PASSWORD', module: 'User Management' },
-      { name: 'SET_USER_RIGHTS', module: 'User Management' },
-      { name: 'VIEW_USER', module: 'User Management' }
+      { name: 'CREATE_USER', module: 'User Management', description: 'Onboard new staff members' },
+      { name: 'EDIT_USER', module: 'User Management', description: 'Modify staff profiles' },
+      { name: 'DELETE_USER', module: 'User Management', description: 'Retire staff accounts' },
+      { name: 'RESET_PASSWORD', module: 'User Management', description: 'Trigger secure credential reset' },
+      { name: 'VIEW_USER', module: 'User Management', description: 'Access staff registry' },
+      
+      { name: 'VIEW_CUSTOMER', module: 'Customer Analytics', description: 'View detailed customer profiles' },
+      { name: 'EDIT_CUSTOMER', module: 'Customer Analytics', description: 'Update customer information' },
+      { name: 'EXPORT_CUSTOMER_DATA', module: 'Customer Analytics', description: 'Export sensitive data to CSV/Excel' },
+      
+      { name: 'CREATE_SERVICE', module: 'Service Requests', description: 'Initiate new VAS requests' },
+      { name: 'APPROVE_SERVICE', module: 'Service Requests', description: 'Authorize pending requests' },
+      { name: 'REJECT_SERVICE', module: 'Service Requests', description: 'Decline non-compliant requests' },
+      
+      { name: 'VIEW_BRANCH_STATS', module: 'Branch Operations', description: 'Access regional performance metrics' },
+      { name: 'MANAGE_VAULT_LIMITS', module: 'Branch Operations', description: 'Configure branch cash parameters' },
+      { name: 'INPUT_PARAMETER', module: 'Branch Operations', description: 'Entry for branch-specific codes' }
     ];
 
     try {
@@ -614,11 +688,26 @@ export default function UserManagement() {
     { 
       header: "Status", 
       accessor: "status",
-      render: (user: User) => (
-        <StatusBadge status={user.isLocked ? 'locked' : user.status}>
-          {user.isLocked ? 'Locked' : user.status}
-        </StatusBadge>
-      )
+      render: (user: User) => {
+        const displayStatus = user.isLocked ? 'LOCKED' : user.status;
+        const mappedStatus = displayStatus === 'ACTIVE' ? 'active' : 
+                             displayStatus === 'INACTIVE' ? 'inactive' : 
+                             (displayStatus === 'BLOCKED' || displayStatus === 'LOCKED') ? 'blocked' : 'inactive';
+        return (
+          <StatusBadge status={mappedStatus}>
+            <select
+              value={displayStatus}
+              onChange={(e) => handleUpdateStatus(user, e.target.value)}
+              className="bg-transparent border-none p-0 m-0 text-inherit font-inherit uppercase tracking-inherit outline-none cursor-pointer appearance-none text-[10px] font-bold"
+            >
+              <option value="ACTIVE" className="bg-white text-slate-800">ACTIVE</option>
+              <option value="INACTIVE" className="bg-white text-slate-800">INACTIVE</option>
+              <option value="BLOCKED" className="bg-white text-slate-800">BLOCKED</option>
+              {user.isLocked && <option value="LOCKED" className="bg-white text-slate-800">LOCKED</option>}
+            </select>
+          </StatusBadge>
+        );
+      }
     },
     { 
       header: "Actions", 
@@ -650,13 +739,15 @@ export default function UserManagement() {
           >
             <ShieldCheck size={16} />
           </button>
-          <button 
-            onClick={() => setResetingPasswordUser(user)}
-            className="p-2 text-[#64748B] hover:text-indigo-600 hover:bg-white rounded-xl border border-transparent hover:border-[#F1F5F9] shadow-sm transition-all" 
-            title="Reset Password"
-          >
-            <RotateCcw size={16} />
-          </button>
+          {hasPermission('RESET_PASSWORD') && (
+            <button 
+              onClick={() => setResetingPasswordUser(user)}
+              className="p-2 text-[#64748B] hover:text-indigo-600 hover:bg-white rounded-xl border border-transparent hover:border-[#F1F5F9] shadow-sm transition-all" 
+              title="Reset Password"
+            >
+              <RotateCcw size={16} />
+            </button>
+          )}
           <button 
             onClick={() => handleToggleLock(user)}
             className="p-2 text-[#64748B] hover:text-amber-600 hover:bg-white rounded-xl border border-transparent hover:border-[#F1F5F9] shadow-sm transition-all" 
@@ -806,9 +897,21 @@ export default function UserManagement() {
                 <div className="space-y-6">
                   <div className="p-6 bg-emerald-50 border border-emerald-100 rounded-2xl text-center">
                     <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-2">Temporary Password Generated</p>
-                    <p className="text-2xl font-mono font-bold text-[#0F172A] tracking-wider py-2 bg-white rounded-xl border border-emerald-100 mb-2">
-                      {tempResetPassword}
-                    </p>
+                    <div className="flex items-center gap-2 py-2 px-4 bg-white rounded-xl border border-emerald-100 mb-2">
+                      <p className="flex-1 text-2xl font-mono font-bold text-[#0F172A] tracking-wider">
+                        {tempResetPassword}
+                      </p>
+                      <button 
+                        onClick={() => {
+                          navigator.clipboard.writeText(tempResetPassword);
+                          alert('Password copied to clipboard');
+                        }}
+                        className="p-2 text-[#D4AF37] hover:bg-[#D4AF37]/10 rounded-lg transition-all"
+                        title="Copy to Clipboard"
+                      >
+                        <FileText size={18} />
+                      </button>
+                    </div>
                     <p className="text-[10px] text-[#64748B]">Please provide this password to the staff member. They will be forced to change it upon login.</p>
                   </div>
                   <button 
@@ -994,91 +1097,157 @@ export default function UserManagement() {
         )}
 
         {!!viewingRole && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-[#0F172A]/40 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-[#0F172A]/60 backdrop-blur-md">
             <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white w-full max-w-lg rounded-[32px] shadow-2xl p-8 relative overflow-hidden"
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white w-full max-w-2xl rounded-[40px] shadow-2xl overflow-hidden relative border border-white/20"
             >
-              <button 
-                onClick={() => setViewingRole(null)}
-                className="absolute top-6 right-6 p-2 text-[#94A3B8] hover:text-[#0F172A] hover:bg-[#F8FAFC] rounded-xl transition-all"
-              >
-                <X size={20} />
-              </button>
-
-              <div className="mb-8">
-                <h3 className="text-xl font-bold text-[#0F172A]">{viewingRole.name}</h3>
-                {viewingRole.parentRoleId && roles.find(r => r.id === viewingRole.parentRoleId) && (
-                    <p className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-wider mb-2">
-                        Inherits from: {roles.find(r => r.id === viewingRole.parentRoleId)?.name}
-                    </p>
-                )}
-                <p className="text-sm text-[#64748B]">{viewingRole.description || 'Functional role mapping.'}</p>
+              {/* Header Banner */}
+              <div className="h-32 bg-[#0F172A] relative overflow-hidden">
+                <div className="absolute inset-0 opacity-10">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-[#D4AF37] rounded-full -mr-32 -mt-32" />
+                  <div className="absolute bottom-0 left-0 w-32 h-32 bg-white rounded-full -ml-16 -mb-16" />
+                </div>
+                <button 
+                  onClick={() => setViewingRole(null)}
+                  className="absolute top-6 right-6 p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-xl transition-all z-20"
+                >
+                  <X size={24} />
+                </button>
+                <div className="absolute bottom-6 left-8 flex items-center gap-4">
+                  <div className="w-16 h-16 bg-[#D4AF37] rounded-2xl flex items-center justify-center text-[#0F172A] shadow-xl border-4 border-white/10">
+                    <Shield size={32} />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-white italic font-display">{viewingRole.name}</h3>
+                    <p className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-[0.2em]">Functional Operational Authority</p>
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-4">
-                <div className="flex items-center justify-between ml-2">
-                  <label className="text-[10px] font-bold text-[#64748B] uppercase tracking-[0.2em]">Direct Permissions</label>
-                  <span className="text-[10px] font-bold text-[#D4AF37] px-2 py-0.5 bg-[#0F172A] rounded-lg">
-                    {(viewingRole.permissionIds || []).length}
-                  </span>
-                </div>
-                <div className="max-h-40 overflow-y-auto pr-2 custom-scrollbar space-y-2">
-                  {(viewingRole.permissionIds || []).map(pid => {
-                     const perm = permissions.find(p => p.id === pid);
-                     return perm ? (
-                       <div key={pid} className="p-3 bg-white border border-[#F1F5F9] rounded-xl flex items-center justify-between shadow-sm">
-                         <p className="text-xs font-bold text-[#1E293B]">{perm.name}</p>
-                         <p className="text-[9px] font-bold text-[#94A3B8] uppercase">{perm.module}</p>
-                       </div>
-                     ) : null;
-                  })}
-                  {(viewingRole.permissionIds || []).length === 0 && (
-                    <p className="text-xs text-[#94A3B8] italic p-4 text-center">No direct permissions assigned.</p>
-                  )}
+              <div className="p-10">
+                <div className="grid grid-cols-3 gap-8 mb-10">
+                  <div className="col-span-2 space-y-4">
+                    <label className="text-[10px] font-bold text-[#64748B] uppercase tracking-[0.2em] ml-1">Role Objective</label>
+                    <p className="text-sm text-[#334155] leading-relaxed italic border-l-4 border-[#D4AF37] pl-4">
+                      {viewingRole.description || 'This role facilitates specific functional operations within the Bank Asia Priority banking ecosystem, governed by granular entitlement codes.'}
+                    </p>
+                  </div>
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-bold text-[#64748B] uppercase tracking-[0.2em]">Inheritance</label>
+                    <div className="p-4 bg-[#F8FAFC] rounded-2xl border border-[#F1F5F9] text-center">
+                      <p className="text-[11px] font-bold text-[#0F172A]">
+                        {viewingRole.parentRoleId ? roles.find(r => r.id === viewingRole.parentRoleId)?.name : 'Base Identity'}
+                      </p>
+                      <p className="text-[8px] text-[#94A3B8] uppercase mt-1">Parent Hierarchy</p>
+                    </div>
+                  </div>
                 </div>
 
-                {viewingRole.parentRoleId && (
-                  <div className="space-y-3 mt-4 border-t border-[#F1F5F9] pt-4">
-                    <button 
-                      onClick={() => setShowInheritedInView(!showInheritedInView)}
-                      className="flex items-center justify-between w-full px-4 py-3 bg-[#F8FAFC] hover:bg-[#F1F5F9] rounded-xl transition-all"
-                    >
+                <div className="space-y-8">
+                  <div>
+                    <div className="flex items-center justify-between mb-4 px-1">
                       <div className="flex items-center gap-2">
-                        <History size={14} className="text-[#D4AF37]" />
-                        <span className="text-[10px] font-bold text-[#0F172A] uppercase tracking-wider">Inherited from {roles.find(r => r.id === viewingRole.parentRoleId)?.name}</span>
+                        <Key size={16} className="text-[#D4AF37]" />
+                        <h4 className="text-xs font-bold text-[#0F172A] uppercase tracking-widest">Permission Registry</h4>
                       </div>
-                      <span className="text-[10px] font-bold text-[#64748B] bg-white px-2 py-0.5 rounded border border-[#E2E8F0]">
-                        {getInheritedPermissionIds(viewingRole.id, roles).length} Rights
-                      </span>
-                    </button>
-                    
-                    <AnimatePresence>
-                      {showInheritedInView && (
-                        <motion.div 
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="grid grid-cols-2 gap-2 mt-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                            {getInheritedPermissionIds(viewingRole.id, roles).map(pid => {
-                              const perm = permissions.find(p => p.id === pid);
-                              return perm ? (
-                                <div key={pid} className="p-2 border border-dashed border-[#E2E8F0] rounded-lg bg-[#FDFCFB]">
-                                  <p className="text-[9px] font-bold text-[#334155]">{perm.name}</p>
-                                  <p className="text-[7px] text-[#94A3B8] uppercase font-bold">{perm.module}</p>
-                                </div>
-                              ) : null;
-                            })}
+                      <div className="flex items-center gap-4">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]" size={12} />
+                          <input 
+                            type="text"
+                            placeholder="Search rights..."
+                            className="pl-8 pr-3 py-1.5 bg-white border border-[#E2E8F0] rounded-lg text-[10px] font-medium outline-none focus:border-[#D4AF37] transition-all w-32"
+                            value={searchTermDetailPerm}
+                            onChange={(e) => setSearchTermDetailPerm(e.target.value)}
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                           <span className="px-3 py-1 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg text-[9px] font-bold text-[#64748B]">
+                             {viewingRole.permissionIds?.length || 0} Direct
+                           </span>
+                           {viewingRole.parentRoleId && (
+                             <span className="px-3 py-1 bg-[#D4AF37]/10 border border-[#D4AF37]/20 rounded-lg text-[9px] font-bold text-[#D4AF37]">
+                               {getInheritedPermissionIds(viewingRole.id, roles).length} Inherited
+                             </span>
+                           )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#F8FAFC] rounded-[32px] border border-[#F1F5F9] p-6">
+                      <div className="grid grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                        {/* Direct Permissions First */}
+                        {viewingRole.permissionIds?.filter(pid => {
+                          const perm = permissions.find(p => p.id === pid);
+                          return !searchTermDetailPerm || (perm?.name.toLowerCase().includes(searchTermDetailPerm.toLowerCase()) || perm?.module.toLowerCase().includes(searchTermDetailPerm.toLowerCase()));
+                        }).map(pid => {
+                          const perm = permissions.find(p => p.id === pid);
+                          return perm ? (
+                            <div key={pid} className="group p-4 bg-white border border-[#E2E8F0] rounded-2xl flex items-center gap-3 hover:border-[#D4AF37] hover:shadow-lg transition-all">
+                              <div className="w-8 h-8 rounded-lg bg-[#0F172A] flex items-center justify-center text-[#D4AF37]">
+                                <ShieldCheck size={16} />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-[10px] font-bold text-[#0F172A] truncate">{perm.name}</p>
+                                <p className="text-[8px] text-[#94A3B8] uppercase font-bold">{perm.module}</p>
+                              </div>
+                            </div>
+                          ) : null;
+                        })}
+
+                        {/* Inherited Permissions */}
+                        {getInheritedPermissionIds(viewingRole.id, roles).filter(pid => {
+                          if (viewingRole.permissionIds?.includes(pid)) return false;
+                          const perm = permissions.find(p => p.id === pid);
+                          return !searchTermDetailPerm || (perm?.name.toLowerCase().includes(searchTermDetailPerm.toLowerCase()) || perm?.module.toLowerCase().includes(searchTermDetailPerm.toLowerCase()));
+                        }).map(pid => {
+                          const perm = permissions.find(p => p.id === pid);
+                          if (!perm) return null;
+                          return (
+                            <div key={`inherited-${pid}`} className="p-4 bg-white/50 border border-dashed border-[#E2E8F0] rounded-2xl flex items-center gap-3 opacity-60">
+                              <div className="w-8 h-8 rounded-lg bg-[#64748B]/10 flex items-center justify-center text-[#64748B]">
+                                <History size={16} />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-[10px] font-bold text-[#334155] truncate">{perm.name}</p>
+                                <p className="text-[8px] text-[#94A3B8] uppercase font-bold">Inherited</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {viewingRole.permissionIds?.length === 0 && !viewingRole.parentRoleId && (
+                          <div className="col-span-2 py-12 text-center">
+                            <AlertCircle className="mx-auto text-[#CBD5E1] mb-2" size={32} />
+                            <p className="text-xs font-bold text-[#94A3B8] uppercase tracking-widest">No Entitlements Defined</p>
                           </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                )}
+                </div>
+
+                <div className="mt-10 flex gap-4">
+                  <button 
+                    onClick={() => setViewingRole(null)}
+                    className="flex-1 py-4 bg-[#F8FAFC] text-[#64748B] rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-[#F1F5F9] transition-all"
+                  >
+                    Dismiss Details
+                  </button>
+                  <button 
+                    onClick={() => {
+                      handleEditRole(viewingRole);
+                      setViewingRole(null);
+                    }}
+                    className="flex-1 py-4 bg-[#0F172A] text-[#D4AF37] rounded-2xl font-bold text-xs uppercase tracking-widest hover:shadow-xl shadow-[#0F172A]/10 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Edit size={16} />
+                    Modify Authority
+                  </button>
+                </div>
               </div>
             </motion.div>
           </div>
@@ -1510,7 +1679,10 @@ export default function UserManagement() {
                   >
                     <option value="">None (Base Role)</option>
                     {roles
-                        .filter(r => r.id !== editingRole?.id)
+                        .filter(r => {
+                          if (!editingRole) return true;
+                          return r.id !== editingRole.id && !isCircular(editingRole.id, r.id);
+                        })
                         .map(role => (
                         <option key={role.id} value={role.id}>{role.name}</option>
                     ))}
@@ -1558,42 +1730,114 @@ export default function UserManagement() {
                     </div>
                   )}
                 </div>
-                
+
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between ml-2">
-                    <label className="text-[10px] font-bold text-[#64748B] uppercase tracking-[0.2em]">Entitlement Codes</label>
-                    <span className="text-[10px] font-bold text-[#D4AF37] bg-[#0F172A] px-2 py-0.5 rounded-lg">
-                      {selectedPermissions.length} selected
-                    </span>
+                  <div className="flex items-center justify-between px-2">
+                    <label className="text-[10px] font-bold text-[#64748B] uppercase tracking-[0.2em]">Entitlement Registry</label>
+                    <div className="flex gap-2">
+                      <span className="px-2 py-1 bg-[#0F172A] text-[#D4AF37] text-[10px] font-bold rounded-lg" title="Direct Permissions">{selectedPermissions.length}D</span>
+                      {selectedInheritedRoleId && (
+                        <span className="px-2 py-1 bg-[#D4AF37]/10 text-[#D4AF37] text-[10px] font-bold rounded-lg" title="Total Effective Permissions">{getEffectivePermissionIds(selectedInheritedRoleId, roles).length + selectedPermissions.length}T</span>
+                      )}
+                    </div>
                   </div>
+
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]" size={16} />
-                    <input
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#94A3B8]" size={16} />
+                    <input 
                       type="text"
-                      placeholder="Search permissions..."
+                      placeholder="Search granular rights or modules..."
                       value={searchTermPerm}
                       onChange={(e) => setSearchTermPerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl outline-none focus:border-[#D4AF37] transition-all text-sm font-medium"
+                      className="w-full pl-12 pr-4 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl outline-none focus:border-[#D4AF37] transition-all text-sm font-medium"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                    {permissions
-                      .filter(p => p.name.toLowerCase().includes(searchTermPerm.toLowerCase()) || p.module.toLowerCase().includes(searchTermPerm.toLowerCase()))
-                      .map(perm => (
-                      <button
-                        key={perm.id}
-                        type="button"
-                        onClick={() => setSelectedPermissions(p => p.includes(perm.id) ? p.filter(id => id !== perm.id) : [...p, perm.id])}
-                        className={`p-3 rounded-xl border text-left transition-all ${
-                          selectedPermissions.includes(perm.id)
-                            ? 'bg-[#0F172A] border-[#0F172A] text-[#D4AF37]'
-                            : 'bg-white border-[#E2E8F0] text-[#64748B] hover:border-[#F1F5F9]'
-                        }`}
-                      >
-                        <p className="text-[10px] font-bold truncate">{perm.name}</p>
-                        <p className="text-[8px] opacity-70 uppercase">{perm.module}</p>
-                      </button>
-                    ))}
+
+                  <div className="max-h-64 overflow-y-auto pr-2 custom-scrollbar space-y-6 border border-[#F1F5F9] rounded-2xl p-4 bg-[#F8FAFC]/50">
+                    {Array.from(new Set(permissions.map(p => p.module))).map(module => {
+                      const modulePerms = permissions.filter(p => p.module === module);
+                      const filteredModulePerms = modulePerms.filter(p => 
+                        p.name.toLowerCase().includes(searchTermPerm.toLowerCase()) || 
+                        p.module.toLowerCase().includes(searchTermPerm.toLowerCase())
+                      );
+
+                      if (filteredModulePerms.length === 0) return null;
+
+                      const inheritedIds = selectedInheritedRoleId ? getEffectivePermissionIds(selectedInheritedRoleId, roles) : [];
+                      
+                      // Count direct selections (exclude inherited)
+                      const directSelectedInModule = filteredModulePerms.filter(p => 
+                        selectedPermissions.includes(p.id) && !inheritedIds.includes(p.id)
+                      ).length;
+                      
+                      // Count total selectable in module (ones not inherited)
+                      const selectableInModule = filteredModulePerms.filter(p => !inheritedIds.includes(p.id));
+
+                      return (
+                        <div key={module} className="space-y-2">
+                          <div className="flex items-center justify-between px-2">
+                            <span className="text-[10px] font-black text-[#94A3B8] uppercase tracking-widest">{module}</span>
+                            {selectableInModule.length > 0 && (
+                              <button 
+                                type="button"
+                                onClick={() => {
+                                  const selectableIds = selectableInModule.map(p => p.id);
+                                  if (directSelectedInModule === selectableInModule.length) {
+                                    setSelectedPermissions(prev => prev.filter(id => !selectableIds.includes(id)));
+                                  } else {
+                                    setSelectedPermissions(prev => Array.from(new Set([...prev, ...selectableIds])));
+                                  }
+                                }}
+                                className="text-[9px] font-bold text-[#D4AF37] hover:underline uppercase tracking-tighter"
+                              >
+                                {directSelectedInModule === selectableInModule.length ? 'Deselect Module' : 'Select Module'}
+                              </button>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            {filteredModulePerms.map(perm => {
+                              const isDirectSelected = selectedPermissions.includes(perm.id);
+                              const isInherited = inheritedIds.includes(perm.id);
+                              
+                              return (
+                                <button
+                                  key={perm.id}
+                                  type="button"
+                                  disabled={isInherited}
+                                  onClick={() => {
+                                    setSelectedPermissions(prev => 
+                                      isDirectSelected ? prev.filter(id => id !== perm.id) : [...prev, perm.id]
+                                    );
+                                  }}
+                                  className={`p-3 rounded-xl border text-left transition-all relative group ${
+                                    isInherited 
+                                      ? 'bg-emerald-50/30 border-emerald-100/50 opacity-80 cursor-not-allowed selection:bg-transparent'
+                                      : isDirectSelected
+                                        ? 'bg-[#0F172A] border-[#0F172A] text-[#D4AF37] shadow-lg shadow-[#0F172A]/10'
+                                        : 'bg-white border-[#E2E8F0] text-[#64748B] hover:border-[#D4AF37]/30'
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between mb-1">
+                                    <p className="text-[10px] font-bold truncate pr-4">{perm.name}</p>
+                                    {isDirectSelected && <ShieldCheck size={10} className="text-[#D4AF37] shrink-0" />}
+                                    {isInherited && <Shield size={10} className="text-emerald-500 shrink-0" />}
+                                  </div>
+                                  <p className={`text-[8px] uppercase truncate ${isDirectSelected ? 'text-white/60' : 'text-[#94A3B8]'}`}>
+                                    {isInherited ? 'Inherited Policy' : (perm.description || 'Access Control')}
+                                  </p>
+                                  
+                                  {isInherited && (
+                                    <div className="absolute top-1 right-1">
+                                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    </div>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -1673,8 +1917,44 @@ export default function UserManagement() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            className="space-y-6"
           >
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-[24px] border border-[#E2E8F0] shadow-sm">
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#94A3B8]" size={18} />
+                <input 
+                  type="text"
+                  placeholder="Search functional roles by name or description..."
+                  value={searchTermRoles}
+                  onChange={(e) => setSearchTermRoles(e.target.value)}
+                  className="w-full pl-12 pr-12 py-3 bg-[#F8FAFC] border border-transparent rounded-xl focus:border-[#D4AF37] focus:bg-white transition-all text-sm font-medium outline-none"
+                />
+                {searchTermRoles && (
+                  <button 
+                    onClick={() => setSearchTermRoles('')}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#0F172A] transition-colors"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
+              <button 
+                onClick={() => {
+                  setEditingRole(null);
+                  setNewRoleName('');
+                  setNewRoleDesc('');
+                  setSelectedPermissions([]);
+                  setSelectedInheritedRoleId('');
+                  setIsCreatingRole(true);
+                }}
+                className="flex items-center justify-center gap-2 bg-[#0F172A] text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-[#1E293B] transition-all shadow-sm"
+              >
+                <Plus size={16} />
+                Create New Role
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {selectedRoleIds.length > 0 && (
           <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-[#0F172A] text-white px-6 py-4 rounded-2xl flex items-center gap-4 shadow-2xl z-50">
             <p className="text-sm font-bold">{selectedRoleIds.length} roles selected</p>
@@ -1682,15 +1962,45 @@ export default function UserManagement() {
           </div>
         )}
 
-        {roles.map((role) => (
-              <div key={role.id} className="bg-white p-8 rounded-[32px] border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:shadow-[#0F172A]/5 transition-all group relative overflow-hidden">
+        {roles
+          .filter(r => 
+            r.name.toLowerCase().includes(searchTermRoles.toLowerCase()) || 
+            (r.description || '').toLowerCase().includes(searchTermRoles.toLowerCase())
+          ).length === 0 ? (
+            <div className="col-span-full py-20 flex flex-col items-center justify-center bg-white rounded-[32px] border border-[#E2E8F0] border-dashed">
+              <div className="w-16 h-16 bg-[#F8FAFC] rounded-2xl flex items-center justify-center text-[#D4AF37] mb-4">
+                <Search size={32} />
+              </div>
+              <h3 className="text-lg font-bold text-[#0F172A]">No matching roles</h3>
+              <p className="text-[#64748B] text-sm mt-1">Try adjusting your search criteria or create a new role.</p>
+              <button 
+                onClick={() => setSearchTermRoles('')}
+                className="mt-6 text-[#D4AF37] font-bold text-xs uppercase tracking-widest hover:underline"
+              >
+                Clear Search
+              </button>
+            </div>
+          ) : roles
+          .filter(r => 
+            r.name.toLowerCase().includes(searchTermRoles.toLowerCase()) || 
+            (r.description || '').toLowerCase().includes(searchTermRoles.toLowerCase())
+          )
+          .map((role) => (
+              <div 
+                key={role.id} 
+                onClick={() => setViewingRole(role)}
+                className="bg-white p-8 rounded-[32px] border border-[#E2E8F0] shadow-sm hover:shadow-xl hover:shadow-[#0F172A]/5 transition-all group relative overflow-hidden cursor-pointer"
+              >
                 <div className="absolute top-0 right-0 w-24 h-24 bg-[#D4AF37]/5 rounded-full -mr-8 -mt-8 group-hover:scale-150 transition-transform duration-700" />
                 
             <div className="flex items-center justify-between mb-4">
               <input 
                 type="checkbox" 
                 checked={selectedRoleIds.includes(role.id)}
-                onChange={() => setSelectedRoleIds(prev => prev.includes(role.id) ? prev.filter(i => i !== role.id) : [...prev, role.id])}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  setSelectedRoleIds(prev => prev.includes(role.id) ? prev.filter(i => i !== role.id) : [...prev, role.id]);
+                }}
                 className="w-5 h-5 rounded border-[#E2E8F0] text-[#D4AF37] focus:ring-0"
               />
               <div className="w-14 h-14 bg-[#F8FAFC] rounded-2xl flex items-center justify-center text-[#0F172A] border border-[#F1F5F9] group-hover:bg-[#0F172A] group-hover:text-[#D4AF37] transition-colors">
@@ -1708,7 +2018,13 @@ export default function UserManagement() {
                     )}
                     <p className="text-sm text-[#64748B] leading-relaxed line-clamp-2">{role.description || 'System-wide functional role mapping.'}</p>
                   </div>
-                  <button onClick={() => setViewingRole(role)} className="p-2 bg-[#F8FAFC] rounded-xl hover:bg-[#D4AF37]/10 text-[#64748B] hover:text-[#D4AF37] transition-all">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setViewingRole(role);
+                    }} 
+                    className="p-2 bg-[#F8FAFC] rounded-xl hover:bg-[#D4AF37]/10 text-[#64748B] hover:text-[#D4AF37] transition-all"
+                  >
                     <ShieldCheck size={18} />
                   </button>
                 </div>
@@ -1716,35 +2032,66 @@ export default function UserManagement() {
                 <div className="space-y-4 relative z-10">
                   <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-[#94A3B8]">
                     <span>Entitlements</span>
-                    <span className="px-2 py-1 bg-[#F1F5F9] text-[#0F172A] rounded-lg">{(role.permissionIds || []).length}</span>
+                    <div className="flex gap-1">
+                      <span className="px-2 py-1 bg-[#F1F5F9] text-[#0F172A] rounded-lg" title="Direct Permissions">{(role.permissionIds || []).length}D</span>
+                      {role.parentRoleId && (
+                        <span className="px-2 py-1 bg-[#D4AF37]/10 text-[#D4AF37] rounded-lg" title="Total Effective Permissions">{getEffectivePermissionIds(role.id, roles).length}T</span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {(role.permissionIds || []).slice(0, 4).map(pid => {
+                    {getEffectivePermissionIds(role.id, roles).slice(0, 4).map(pid => {
                       const perm = permissions.find(p => p.id === pid);
+                      const isInherited = !(role.permissionIds || []).includes(pid);
                       return perm ? (
-                        <span key={pid} className="px-3 py-1.5 bg-[#F8FAFC] border border-[#F1F5F9] text-[9px] font-bold text-[#334155] rounded-lg tracking-wider">
+                        <span 
+                          key={pid} 
+                          className={`px-3 py-1.5 border rounded-lg text-[9px] font-bold tracking-wider ${
+                            isInherited 
+                              ? 'bg-white border-[#E2E8F0] border-dashed text-[#94A3B8]' 
+                              : 'bg-[#F8FAFC] border-[#F1F5F9] text-[#334155]'
+                          }`}
+                        >
                           {perm.name}
                         </span>
                       ) : null;
                     })}
-                    {(role.permissionIds || []).length > 4 && (
+                    {getEffectivePermissionIds(role.id, roles).length > 4 && (
                       <span className="px-3 py-1.5 bg-[#F8FAFC] border border-[#F1F5F9] text-[9px] font-bold text-[#D4AF37] rounded-lg tracking-wider">
-                        +{(role.permissionIds || []).length - 4} MORE
+                        +{getEffectivePermissionIds(role.id, roles).length - 4} MORE
                       </span>
                     )}
                   </div>
                 </div>
 
                 <div className="mt-8 pt-6 border-t border-[#F1F5F9] flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => setViewingRole(role)} className="text-xs font-bold text-[#0F172A] hover:text-[#D4AF37] transition-colors flex items-center gap-2">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setViewingRole(role);
+                    }} 
+                    className="text-xs font-bold text-[#0F172A] hover:text-[#D4AF37] transition-colors flex items-center gap-2"
+                  >
                     <FileText size={14} />
                     View Details
                   </button>
-                  <button onClick={() => handleEditRole(role)} className="text-xs font-bold text-[#0F172A] hover:text-[#D4AF37] transition-colors flex items-center gap-2">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditRole(role);
+                    }} 
+                    className="text-xs font-bold text-[#0F172A] hover:text-[#D4AF37] transition-colors flex items-center gap-2"
+                  >
                     <Edit size={14} />
                     Modify Role
                   </button>
-                  <button onClick={() => handleDeleteRole(role.id)} className="text-xs font-bold text-[#64748B] hover:text-red-600 transition-colors flex items-center gap-2">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteRole(role.id);
+                    }} 
+                    className="text-xs font-bold text-[#64748B] hover:text-red-600 transition-colors flex items-center gap-2"
+                  >
                     <Trash2 size={14} />
                     Retire
                   </button>
@@ -1764,6 +2111,7 @@ export default function UserManagement() {
                  <p className="text-xs">Establish functional entitlement policy</p>
                </div>
             </button>
+          </div>
           </motion.div>
         ) : activeTab === 'User Leaves' ? (
           <motion.div

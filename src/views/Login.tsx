@@ -86,6 +86,33 @@ export default function Login({ onLogin }: { onLogin?: () => void }) {
     return re.test(pass);
   };
 
+  const calculateStrength = (pass: string) => {
+    let score = 0;
+    if (!pass) return 0;
+    
+    if (pass.length >= 8) score += 1;
+    if (pass.length >= 12) score += 1;
+    if (/[A-Z]/.test(pass)) score += 1;
+    if (/[a-z]/.test(pass)) score += 1;
+    if (/[0-9]/.test(pass)) score += 1;
+    if (/[^A-Za-z0-9]/.test(pass)) score += 1;
+
+    if (score <= 2) return 1; // Weak
+    if (score <= 4) return 2; // Medium
+    if (score <= 5) return 3; // Strong
+    return 4; // Very Strong
+  };
+
+  const getStrengthLabel = (score: number) => {
+    switch (score) {
+      case 1: return { label: 'Weak', color: 'bg-rose-500', text: 'text-rose-500' };
+      case 2: return { label: 'Medium', color: 'bg-amber-500', text: 'text-amber-500' };
+      case 3: return { label: 'Strong', color: 'bg-emerald-500', text: 'text-emerald-500' };
+      case 4: return { label: 'V. Strong', color: 'bg-indigo-500', text: 'text-indigo-500' };
+      default: return { label: '', color: 'bg-gray-200', text: 'text-gray-400' };
+    }
+  };
+
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -255,13 +282,51 @@ export default function Login({ onLogin }: { onLogin?: () => void }) {
                       <h2 className="text-2xl font-bold text-[#0F172A] tracking-tight">Set New Password</h2>
                     </div>
                     <div className="space-y-6">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-[#64748B] uppercase tracking-[0.2em] ml-2">New Password</label>
-                        <input type="password" required className="w-full px-7 py-5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[24px] outline-none" />
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-end px-2">
+                          <label className="text-[10px] font-bold text-[#64748B] uppercase tracking-[0.2em]">New Password</label>
+                          {newPassword && (
+                            <div className="flex items-center gap-2">
+                              <span className={`text-[8px] font-black uppercase tracking-widest ${getStrengthLabel(calculateStrength(newPassword)).text}`}>
+                                {getStrengthLabel(calculateStrength(newPassword)).label}
+                              </span>
+                              <div className="flex gap-1">
+                                {[1, 2, 3, 4].map((step) => (
+                                  <div 
+                                    key={step}
+                                    className={`w-3 h-1 rounded-full transition-all duration-500 ${
+                                      calculateStrength(newPassword) >= step 
+                                        ? getStrengthLabel(calculateStrength(newPassword)).color 
+                                        : 'bg-gray-100'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <input 
+                          type="password" 
+                          required 
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          className="w-full px-7 py-5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[24px] outline-none focus:border-[#D4AF37] transition-all" 
+                        />
                       </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-[#64748B] uppercase tracking-[0.2em] ml-2">Confirm New Password</label>
-                        <input type="password" required className="w-full px-7 py-5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[24px] outline-none" />
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center px-2">
+                          <label className="text-[10px] font-bold text-[#64748B] uppercase tracking-[0.2em]">Confirm New Password</label>
+                          {confirmPassword && newPassword === confirmPassword && (
+                            <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">Match Verified</span>
+                          )}
+                        </div>
+                        <input 
+                          type="password" 
+                          required 
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="w-full px-7 py-5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[24px] outline-none focus:border-[#D4AF37] transition-all" 
+                        />
                       </div>
                     </div>
                     <button type="submit" disabled={isLoading} className="w-full bg-[#0F172A] text-white py-5 rounded-[24px] font-bold">
@@ -352,8 +417,29 @@ export default function Login({ onLogin }: { onLogin?: () => void }) {
                       {error}
                     </div>
                   )}
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-[#64748B] uppercase tracking-[0.2em] ml-2">Establish New Password</label>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-end px-2">
+                      <label className="text-[10px] font-bold text-[#64748B] uppercase tracking-[0.2em]">Establish New Password</label>
+                      {newPassword && (
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[8px] font-black uppercase tracking-widest ${getStrengthLabel(calculateStrength(newPassword)).text}`}>
+                            {getStrengthLabel(calculateStrength(newPassword)).label}
+                          </span>
+                          <div className="flex gap-1">
+                            {[1, 2, 3, 4].map((step) => (
+                              <div 
+                                key={step}
+                                className={`w-3 h-1 rounded-full transition-all duration-500 ${
+                                  calculateStrength(newPassword) >= step 
+                                    ? getStrengthLabel(calculateStrength(newPassword)).color 
+                                    : 'bg-gray-100'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                     <input 
                       type="password"
                       required
@@ -363,8 +449,13 @@ export default function Login({ onLogin }: { onLogin?: () => void }) {
                       className="w-full px-7 py-5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[24px] outline-none focus:border-[#D4AF37] focus:ring-4 focus:ring-[#D4AF37]/5 transition-all text-sm font-medium"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-[#64748B] uppercase tracking-[0.2em] ml-2">Verify Password</label>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center px-2">
+                      <label className="text-[10px] font-bold text-[#64748B] uppercase tracking-[0.2em]">Verify Password</label>
+                      {confirmPassword && newPassword === confirmPassword && (
+                        <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">Match Verified</span>
+                      )}
+                    </div>
                     <input 
                       type="password"
                       required

@@ -41,6 +41,7 @@
       "properties": {
         "name": { "type": "string" },
         "description": { "type": "string" },
+        "parentRoleId": { "type": "string", "description": "Reference to parent role ID" },
         "permissionIds": { 
           "type": "array", 
           "items": { "type": "string" }
@@ -124,17 +125,86 @@
       "description": "Service requests from customers",
       "type": "object",
       "properties": {
-        "requestId": { "type": "string" },
-        "customerId": { "type": "string" },
-        "customerName": { "type": "string" },
-        "serviceType": { "type": "string" },
-        "stage": { "type": "string" },
-        "status": { "type": "string" },
-        "rmId": { "type": "string" },
+        "request_id": { "type": "string" },
+        "customer_id": { "type": "string" },
+        "customer_name": { "type": "string" },
+        "service_type": { 
+          "type": "string",
+          "enum": [
+            "account_opening",
+            "locker",
+            "demat",
+            "insurance",
+            "loan",
+            "card_issuance",
+            "other"
+          ] 
+        },
+        "service_category": { 
+          "type": "string",
+          "enum": ["on_request", "annual_service", "coupon_based"],
+          "description": "Service category: on-demand, annual recurring, or coupon-based"
+        },
+        "description": { "type": "string" },
+        "priority": { 
+          "type": "string",
+          "enum": ["low", "medium", "high", "urgent"],
+          "default": "medium"
+        },
+        "status": { 
+          "type": "string",
+          "enum": [
+            "draft",
+            "pending_cm",
+            "pending_hopb",
+            "in_progress",
+            "awaiting_customer",
+            "approved",
+            "rejected",
+            "resolved",
+            "completed"
+          ],
+          "default": "draft"
+        },
+        "assigned_to": { "type": "string" },
+        "cm_approval": { 
+          "type": "string",
+          "enum": ["pending", "approved", "rejected"],
+          "default": "pending"
+        },
+        "hopb_approval": { 
+          "type": "string",
+          "enum": ["pending", "approved", "rejected"],
+          "default": "pending"
+        },
+        "cm_remarks": { "type": "string" },
+        "hopb_remarks": { "type": "string" },
+        "due_date": { "type": "string", "format": "date" },
+        "cost": { "type": "number" },
+        "documents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "file_url": { "type": "string", "description": "URL to the uploaded file" },
+              "file_name": { "type": "string", "description": "Original file name" },
+              "document_type": { 
+                "type": "string",
+                "enum": ["kyc", "proof_of_payment", "identity", "address", "other"],
+                "description": "Type of document"
+              },
+              "uploaded_by": { "type": "string", "description": "Email of user who uploaded" },
+              "uploaded_at": { "type": "string", "format": "date-time", "description": "Upload timestamp" }
+            },
+            "required": ["file_url", "file_name", "document_type"]
+          },
+          "description": "Array of attached documents"
+        },
+        "created_by": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["requestId", "customerId", "serviceType"]
+      "required": ["customer_name", "service_type"]
     },
     "BirthdayReminder": {
       "title": "BirthdayReminder",
@@ -145,11 +215,33 @@
         "customerName": { "type": "string" },
         "reminderDate": { "type": "string", "format": "date" },
         "message": { "type": "string" },
+        "sendEmail": { "type": "boolean" },
+        "customerEmail": { "type": "string", "format": "email" },
+        "emailSubject": { "type": "string" },
+        "emailBody": { "type": "string" },
         "status": { "type": "string", "enum": ["pending", "dismissed"] },
         "createdById": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["customerId", "reminderDate", "message"]
+    }
+    "SystemParameter": {
+      "title": "SystemParameter",
+      "description": "System wide configuration parameters",
+      "type": "object",
+      "properties": {
+        "param_key": { "type": "string" },
+        "param_value": { "type": "string" },
+        "category": { 
+          "type": "string",
+          "enum": ["general", "email", "sms", "notification", "service", "threshold"]
+        },
+        "description": { "type": "string" },
+        "is_active": { "type": "boolean", "default": true },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["param_key", "param_value"]
     }
   },
   "firestore": {
@@ -188,6 +280,10 @@
     "/auditLogs/{logId}": {
       "schema": "AuditLog",
       "description": "Immutable audit trail"
+    },
+    "systemParameters/{parameterId}": {
+      "schema": { "$ref": "#/entities/SystemParameter" },
+      "description": "System parameters configuration"
     }
   }
 }
