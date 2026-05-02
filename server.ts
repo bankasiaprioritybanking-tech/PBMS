@@ -29,7 +29,7 @@ import cryptoRandomString from 'crypto-random-string';
 
 async function startServer() {
   const expressApp = express();
-  const PORT = 3000;
+  const PORT = parseInt(process.env.PORT || '5000', 10);
 
   expressApp.use(express.json());
 
