@@ -30,6 +30,11 @@
     "recharts": "^3.8.1",
     "vite": "^6.2.0"
   },
+  "overrides": {
+    "uuid": "^14.0.0",
+    "@tootallnate/once": "^3.0.1",
+    "qs": "^6.15.1"
+  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@firebase/eslint-plugin-security-rules": "^0.0.2",
