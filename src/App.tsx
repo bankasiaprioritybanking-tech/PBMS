@@ -42,13 +42,23 @@ export default function App() {
     return localStorage.getItem('pbms_auth') === 'true';
   });
 
+  const handleLogin = () => {
+    localStorage.setItem('pbms_auth', 'true');
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('pbms_auth');
+    setIsAuthenticated(false);
+  };
+
   return (
     <ThemeProvider>
       <Router>
         {!isAuthenticated ? (
-          <Login onLogin={() => setIsAuthenticated(true)} />
+          <Login onLogin={handleLogin} />
         ) : (
-          <Layout onLogout={() => setIsAuthenticated(false)}>
+          <Layout onLogout={handleLogout}>
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/user-management" element={<UserManagement />} />
