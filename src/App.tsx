@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './views/Dashboard';
@@ -22,7 +21,8 @@ import SmsGateway from './views/SmsGateway';
 import Login from './views/Login';
 import Profile from './views/Profile';
 import { ThemeProvider } from './lib/ThemeContext';
-import { Construction } from 'lucide-react';
+import { AuthProvider, useAuth } from './lib/AuthContext';
+import { Construction, Loader } from 'lucide-react';
 
 const UnderConstruction = ({ title }: { title: string }) => (
   <div className="flex flex-col items-center justify-center h-full text-center p-12 bg-white rounded-3xl border border-dashed border-[#E2E8F0]">
@@ -37,49 +37,56 @@ const UnderConstruction = ({ title }: { title: string }) => (
   </div>
 );
 
-export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem('pbms_auth') === 'true';
-  });
+function AppContent() {
+  const { isAuthenticated, isLoading } = useAuth();
 
-  const handleLogin = () => {
-    localStorage.setItem('pbms_auth', 'true');
-    setIsAuthenticated(true);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('pbms_auth');
-    setIsAuthenticated(false);
-  };
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#0F172A] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader size={48} className="text-[#D4AF37] animate-spin" />
+          <p className="text-white text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <ThemeProvider>
-      <Router>
-        {!isAuthenticated ? (
-          <Login onLogin={handleLogin} />
-        ) : (
-          <Layout onLogout={handleLogout}>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/user-management" element={<UserManagement />} />
-              <Route path="/system-setup" element={<SystemSetup />} />
-              <Route path="/workflow-rules" element={<WorkflowRules />} />
-              <Route path="/task-management" element={<TaskManagement />} />
-              <Route path="/reports" element={<Reports />} />
-              <Route path="/parameter-entry" element={<ParameterEntry />} />
-              <Route path="/service-request" element={<ServiceRequest />} />
-              <Route path="/bill-management" element={<BillManagement />} />
-              <Route path="/customer" element={<Customer />} />
-              <Route path="/annual-service" element={<AnnualService />} />
-              <Route path="/appointments" element={<Appointments />} />
-              <Route path="/email" element={<UnderConstruction title="Email Templates" />} />
-              <Route path="/sms" element={<SmsGateway />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Layout>
-        )}
-      </Router>
-    </ThemeProvider>
+    <Router>
+      {!isAuthenticated ? (
+        <Login />
+      ) : (
+        <Layout>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/user-management" element={<UserManagement />} />
+            <Route path="/system-setup" element={<SystemSetup />} />
+            <Route path="/workflow-rules" element={<WorkflowRules />} />
+            <Route path="/task-management" element={<TaskManagement />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/parameter-entry" element={<ParameterEntry />} />
+            <Route path="/service-request" element={<ServiceRequest />} />
+            <Route path="/bill-management" element={<BillManagement />} />
+            <Route path="/customer" element={<Customer />} />
+            <Route path="/annual-service" element={<AnnualService />} />
+            <Route path="/appointments" element={<Appointments />} />
+            <Route path="/email" element={<UnderConstruction title="Email Templates" />} />
+            <Route path="/sms" element={<SmsGateway />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Layout>
+      )}
+    </Router>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
+    </AuthProvider>
   );
 }

@@ -22,8 +22,9 @@ import {
   serverTimestamp 
 } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
+import { useAuth } from '../lib/AuthContext';
 
-export default function Login({ onLogin }: { onLogin?: () => void }) {
+export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -34,6 +35,7 @@ export default function Login({ onLogin }: { onLogin?: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [forgotPasswordStep, setForgotPasswordStep] = useState(0); 
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   // Domain lock constant
   const ALLOWED_DOMAIN = 'bankasia-bd.com';
@@ -41,8 +43,8 @@ export default function Login({ onLogin }: { onLogin?: () => void }) {
 
   useEffect(() => {
     // Check if user is already logged in and needs redirect or has expired password
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
+    if (user) {
+      const checkUserStatus = async () => {
         try {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
           if (userDoc.exists()) {
@@ -53,18 +55,16 @@ export default function Login({ onLogin }: { onLogin?: () => void }) {
             if (data.mustChangePassword || daysSinceChange > 30) {
               setStep(2);
             } else {
-              localStorage.setItem('pbms_auth', 'true');
-              if (onLogin) onLogin();
               navigate('/');
             }
           }
         } catch (err) {
           console.error("Auth check error:", err);
         }
-      }
-    });
-    return unsubscribe;
-  }, [navigate, onLogin]);
+      };
+      checkUserStatus();
+    }
+  }, [user, navigate]);
 
   const handleForgotPassword = (e: FormEvent) => {
     e.preventDefault();
@@ -144,8 +144,6 @@ export default function Login({ onLogin }: { onLogin?: () => void }) {
       if (data.mustChangePassword || daysSinceChange > 30) {
         setStep(2);
       } else {
-        localStorage.setItem('pbms_auth', 'true');
-        if (onLogin) onLogin();
         navigate('/');
       }
     } catch (err: any) {
@@ -183,8 +181,6 @@ export default function Login({ onLogin }: { onLogin?: () => void }) {
           updatedAt: serverTimestamp()
         });
         
-        localStorage.setItem('pbms_auth', 'true');
-        if (onLogin) onLogin();
         navigate('/');
       }
     } catch (err: any) {

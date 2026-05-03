@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../lib/AuthContext';
 
 const sidebarItems = [
   { id: 'dashboard', label: 'Home', icon: LayoutDashboard, path: '/' },
@@ -80,14 +81,18 @@ const sidebarItems = [
   { id: 'sms', label: 'SMS', icon: MessageSquare, path: '/sms' },
 ];
 
-export default function Layout({ children, onLogout }: { children: ReactNode, onLogout?: () => void }) {
+export default function Layout({ children }: { children: ReactNode }) {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const location = useLocation();
+  const { logout, user } = useAuth();
 
-  const handleLogout = () => {
-    localStorage.removeItem('pbms_auth');
-    if (onLogout) onLogout();
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
   const toggleExpand = (id: string) => {
@@ -198,10 +203,10 @@ export default function Layout({ children, onLogout }: { children: ReactNode, on
             <div className="flex flex-col gap-2">
               <Link to="/profile" className="bg-white/5 p-4 rounded-2xl flex items-center gap-3 border border-white/5 group hover:bg-white/10 transition-colors">
                 <div className="w-9 h-9 rounded-xl bg-[#D4AF37] flex items-center justify-center font-bold text-[#0F172A] text-xs shadow-lg shadow-[#D4AF37]/5">
-                  JD
+                  {user?.email?.[0].toUpperCase() || 'U'}
                 </div>
                 <div className="flex-1 min-w-0 text-left">
-                  <p className="text-[13px] font-bold truncate text-white">John Doe</p>
+                  <p className="text-[13px] font-bold truncate text-white">{user?.email?.split('@')[0] || 'User'}</p>
                   <p className="text-[10px] text-[#64748B] uppercase tracking-wider font-bold">Administrator</p>
                 </div>
               </Link>
@@ -215,7 +220,7 @@ export default function Layout({ children, onLogout }: { children: ReactNode, on
             </div>
           ) : (
             <div className="flex flex-col items-center gap-4">
-               <Link to="/profile" className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-[#D4AF37] border border-white/5 hover:bg-white/10 transition-colors">
+               <Link to="/profile" title={user?.email || 'Profile'} className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-[#D4AF37] border border-white/5 hover:bg-white/10 transition-colors">
                  <UserCircle size={20} />
                </Link>
                <button 
