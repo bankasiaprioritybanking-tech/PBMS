@@ -353,7 +353,7 @@ export default function Login() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="Ex: user@bankasia-bd.com"
-                        className="w-full pl-14 pr-6 py-5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[24px] outline-none focus:border-[#D4AF37] focus:ring-4 focus:ring-[#D4AF37]/5 transition-all text-sm font-medium"
+                        className="w-full pl-14 pr-6 py-5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[24px] outline-none focus:border-[#D4AF37] focus:ring-4 focus:ring-[#D4AF37]/5 transition-all text-sm font-medium text-black"
                       />
                     </div>
                   </div>
@@ -370,7 +370,7 @@ export default function Login() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full pl-14 pr-6 py-5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[24px] outline-none focus:border-[#D4AF37] focus:ring-4 focus:ring-[#D4AF37]/5 transition-all text-sm font-medium"
+                        className="w-full pl-14 pr-6 py-5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[24px] outline-none focus:border-[#D4AF37] focus:ring-4 focus:ring-[#D4AF37]/5 transition-all text-sm font-medium text-black"
                       />
                     </div>
                   </div>
