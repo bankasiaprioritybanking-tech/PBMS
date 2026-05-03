@@ -14,8 +14,17 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [testAuth, setTestAuth] = useState<boolean>(false);
 
   useEffect(() => {
+    // Check for development test auth first
+    const testAuthToken = localStorage.getItem('pbms_test_auth');
+    if (testAuthToken === 'true') {
+      setTestAuth(true);
+      setIsLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
@@ -31,6 +40,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
+      // Clear test auth
+      localStorage.removeItem('pbms_test_auth');
+      localStorage.removeItem('pbms_test_user');
+      setTestAuth(false);
+
       await firebaseSignOut(auth);
       setUser(null);
       localStorage.removeItem('pbms_auth');
@@ -45,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         isLoading,
-        isAuthenticated: !!user,
+        isAuthenticated: !!user || testAuth,
         logout,
       }}
     >
