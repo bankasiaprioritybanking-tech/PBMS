@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, FormEvent, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { 
   signInWithEmailAndPassword, 
   updatePassword, 
@@ -191,11 +191,18 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0F172A] flex items-center justify-center p-6 relative overflow-hidden font-sans">
+    <div className="min-h-screen bg-[#0F172A] flex items-start justify-center p-6 py-12 relative overflow-y-auto font-sans">
       {/* Background Ambience */}
       <div className="absolute top-0 left-0 w-full h-full">
          <div className="absolute -top-24 -left-24 w-[600px] h-[600px] bg-[#D4AF37] rounded-full blur-[180px] opacity-10 animate-pulse" />
          <div className="absolute -bottom-24 -right-24 w-[600px] h-[600px] bg-[#D4AF37] rounded-full blur-[180px] opacity-10 animate-pulse" />
+         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] opacity-[0.03] select-none pointer-events-none flex items-center justify-center">
+           <div className="text-center">
+             <p className="text-white font-serif italic text-[120px] leading-none font-bold tracking-tight whitespace-nowrap" style={{ textShadow: '0 0 80px rgba(212,175,55,0.3)' }}>Priority</p>
+             <p className="text-[#D4AF37] font-bold text-[48px] uppercase tracking-[0.5em] leading-none">Banking</p>
+             <p className="text-white/50 text-[14px] uppercase tracking-[0.4em] mt-4 font-bold">Bank Asia Limited</p>
+           </div>
+         </div>
       </div>
 
       <div className="w-full max-w-[460px] relative z-10 flex flex-col gap-10">
@@ -343,6 +350,28 @@ export default function Login() {
                   <p className="text-sm text-[#64748B]">Authenticated system entry for relationship staff</p>
                 </div>
 
+                {/* Demo Access — prominently at top */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    localStorage.setItem('pbms_auth', 'true');
+                    navigate('/');
+                  }}
+                  className="w-full border-2 border-[#D4AF37] bg-[#D4AF37]/10 text-[#0F172A] py-4 rounded-[24px] font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#D4AF37]/20 transition-all"
+                >
+                  <ShieldCheck size={18} className="text-[#D4AF37]" />
+                  <span>Demo Access <span className="font-normal text-[#64748B] text-xs">— enter without credentials</span></span>
+                </button>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-[#E2E8F0]" />
+                  </div>
+                  <div className="relative flex justify-center text-[10px]">
+                    <span className="bg-white px-3 text-[#94A3B8] font-bold uppercase tracking-widest">or sign in with Firebase</span>
+                  </div>
+                </div>
+
                 <div className="space-y-6">
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-[#64748B] uppercase tracking-[0.2em] ml-2">Access Username</label>
@@ -389,6 +418,15 @@ export default function Login() {
                     </>
                   )}
                 </button>
+
+                <div className="text-center pt-2">
+                  <Link 
+                    to="/accept-invitation" 
+                    className="text-[10px] font-bold text-[#94A3B8] hover:text-[#D4AF37] transition-colors uppercase tracking-[0.15em]"
+                  >
+                    Have an invite? Accept here →
+                  </Link>
+                </div>
               </motion.form>
             ) : (
               <motion.div

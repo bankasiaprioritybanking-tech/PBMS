@@ -4,6 +4,7 @@
  */
 
 import { useState, ReactNode } from 'react';
+import PageBackground, { PageVariant } from './PageBackground';
 import { 
   Users, 
   Settings, 
@@ -21,11 +22,24 @@ import {
   ChevronDown,
   Workflow,
   FileText,
-  BarChart3
+  BarChart3,
+  Handshake,
+  Smartphone
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
+
+function getPageVariant(pathname: string): PageVariant {
+  if (pathname === '/') return 'dashboard';
+  if (pathname.startsWith('/user-management')) return 'user-management';
+  if (pathname.startsWith('/service-request')) return 'service-request';
+  if (pathname.startsWith('/customer')) return 'customer';
+  if (pathname.startsWith('/system-setup')) return 'system-setup';
+  if (pathname.startsWith('/priority-alliance')) return 'customer';
+  if (pathname.startsWith('/mobile-app')) return 'dashboard';
+  return 'default';
+}
 
 const sidebarItems = [
   { id: 'dashboard', label: 'Home', icon: LayoutDashboard, path: '/' },
@@ -79,6 +93,8 @@ const sidebarItems = [
   },
   { id: 'email', label: 'Email', icon: Mail, path: '/email' },
   { id: 'sms', label: 'SMS', icon: MessageSquare, path: '/sms' },
+  { id: 'priority-alliance', label: 'Priority Alliance', icon: Handshake, path: '/priority-alliance' },
+  { id: 'mobile-app', label: 'Mobile App', icon: Smartphone, path: '/mobile-app' },
 ];
 
 export default function Layout({ children }: { children: ReactNode }) {
@@ -263,8 +279,9 @@ export default function Layout({ children }: { children: ReactNode }) {
         </header>
 
         {/* View Surface */}
-        <div className="flex-1 overflow-y-auto p-8 bg-[#F8FAFC] dark:bg-[#020617] transition-colors">
-          <div className="max-w-7xl mx-auto h-full">
+        <div className="flex-1 overflow-y-auto p-8 transition-colors relative">
+          <PageBackground variant={getPageVariant(location.pathname)} />
+          <div className="max-w-7xl mx-auto h-full relative z-10">
             {children}
           </div>
         </div>

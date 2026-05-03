@@ -20,6 +20,9 @@ import BillManagement from './views/BillManagement';
 import SmsGateway from './views/SmsGateway';
 import Login from './views/Login';
 import Profile from './views/Profile';
+import AcceptInvitation from './views/AcceptInvitation';
+import PriorityAlliance from './views/PriorityAlliance';
+import MobileApp from './views/MobileApp';
 import { ThemeProvider } from './lib/ThemeContext';
 import { AuthProvider, useAuth } from './lib/AuthContext';
 import { Construction, Loader } from 'lucide-react';
@@ -54,7 +57,10 @@ function AppContent() {
   return (
     <Router>
       {!isAuthenticated ? (
-        <Login />
+        <Routes>
+          <Route path="/accept-invitation" element={<AcceptInvitation />} />
+          <Route path="*" element={<Login />} />
+        </Routes>
       ) : (
         <Layout>
           <Routes>
@@ -73,6 +79,8 @@ function AppContent() {
             <Route path="/email" element={<UnderConstruction title="Email Templates" />} />
             <Route path="/sms" element={<SmsGateway />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/priority-alliance" element={<PriorityAlliance />} />
+            <Route path="/mobile-app" element={<MobileApp />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Layout>
