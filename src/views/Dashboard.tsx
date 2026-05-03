@@ -19,6 +19,7 @@ import DashboardThumbnail from '../components/DashboardThumbnail';
 import ModulePlaceholder from '../components/shared/ModulePlaceholder';
 import RMVisitDashboard from './RMVisitDashboard';
 import RMVisitCalendar from './RMVisitCalendar';
+import { thumbnailAssets } from '../config/thumbnails';
 
 const stats = [
   { label: 'Live VAS Requests', value: '42', icon: Clock, color: 'bg-amber-50 text-[#D4AF37]', trend: '+12%' },
@@ -52,6 +53,52 @@ const RoleDashboard = ({ roleName }: { roleName: string }) => {
     </div>
   );
 };
+
+const PriorityModules = () => {
+  const modules = [
+    { label: 'RM Portfolio', subtitle: 'Dashboard', url: '#portfolio', thumb: thumbnailAssets.rmPortfolio },
+    { label: 'Customer Search', subtitle: 'Priority Marking', url: '#customer', thumb: thumbnailAssets.customerSearch },
+    { label: 'Service Request', subtitle: 'Tracker', url: '/service-request', thumb: thumbnailAssets.serviceRequest },
+    { label: 'VAS Request', subtitle: 'Portal', url: '/appointments', thumb: thumbnailAssets.vasRequest },
+    { label: 'Card Support', subtitle: 'ADC', url: '/bill-management', thumb: thumbnailAssets.cardSupport },
+    { label: 'Cheque Book', subtitle: 'PSD Support', url: '#cheque', thumb: thumbnailAssets.chequeBook },
+    { label: 'Call Center', subtitle: 'Escalation', url: '#escalation', thumb: thumbnailAssets.callCenter },
+    { label: 'Flight Info', subtitle: 'Travel Assist', url: '#flight', thumb: thumbnailAssets.flightInfo },
+    { label: 'Product & SOC', subtitle: 'Library', url: '#products', thumb: thumbnailAssets.productSOC },
+    { label: 'FX Rate', subtitle: 'BB Circular', url: '#forex', thumb: thumbnailAssets.bbCircular },
+  ];
+
+  return (
+    <div className="bg-white p-8 rounded-[32px] border border-[#E2E8F0] shadow-sm space-y-8">
+      <div className="space-y-2">
+        <h3 className="text-xl font-bold text-[#0F172A]">Priority Banking Modules</h3>
+        <p className="text-sm text-[#64748B]">Quick access to key relationship management tools and services</p>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        {modules.map(module => (
+          <a 
+            key={module.label}
+            href={module.url}
+            className="block group"
+          >
+            <DashboardThumbnail 
+              label={module.label}
+              subtitle={module.subtitle}
+              url={module.url}
+              imageSrc={module.thumb}
+            />
+          </a>
+        ))}
+      </div>
+      
+      <div className="p-6 bg-[#FEF9C3] rounded-2xl border border-[#FDE68A] text-[#854D0E] text-xs">
+          <p className="font-bold mb-2">Compliance Note:</p>
+          <p>Customer-sensitive information must not be shared through social media, public communication apps, or third-party campaign tools unless the channel, content, consent, and data-sharing process are approved by the Bank's competent authority. RMs should use these tools only for approved communication, appointment coordination, public campaign engagement, and relationship development.</p>
+      </div>
+    </div>
+  )
+}
 
 const QuickActionDesk = () => {
   const sections = [
@@ -102,7 +149,7 @@ const QuickActionDesk = () => {
           <h4 className="text-xs font-bold text-[#64748B] uppercase tracking-wider">{section.title}</h4>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
             {section.links.map(link => (
-              <DashboardThumbnail key={link.label} label={link.label} url={link.url} imageSrc="/placeholder.png" />
+              <DashboardThumbnail key={link.label} label={link.label} url={link.url} />
             ))}
           </div>
         </div>
@@ -110,7 +157,7 @@ const QuickActionDesk = () => {
       
       <div className="p-6 bg-[#FEF9C3] rounded-2xl border border-[#FDE68A] text-[#854D0E] text-xs">
           <p className="font-bold mb-2">Compliance Note:</p>
-          <p>Customer-sensitive information must not be shared through social media, public communication apps, or third-party campaign tools unless the channel, content, consent, and data-sharing process are approved by the Bank’s competent authority. RMs should use these tools only for approved communication, appointment coordination, public campaign engagement, and relationship development.</p>
+          <p>Customer-sensitive information must not be shared through social media, public communication apps, or third-party campaign tools unless the channel, content, consent, and data-sharing process are approved by the Bank's competent authority. RMs should use these tools only for approved communication, appointment coordination, public campaign engagement, and relationship development.</p>
       </div>
     </div>
   )
@@ -119,7 +166,7 @@ const QuickActionDesk = () => {
 export default function Dashboard() {
   const userRole = 'Priority Relationship Manager (PRM)';
   const tabs = [
-      'RM Home', 'RM Visit Module', 'Visit Calendar', 'Customer 360°', 'Portfolio & Growth', 'Service Request', 'VAS Request', 
+      'RM Home', 'Priority Modules', 'RM Visit Module', 'Visit Calendar', 'Customer 360°', 'Portfolio & Growth', 'Service Request', 'VAS Request', 
       'Card & Cheque Support', 'Complaint & Escalation', 'Important Links', 'Forms & Templates', 
       'Daily RM Checklist', 'Management MIS'
   ];
@@ -156,11 +203,12 @@ export default function Dashboard() {
       </div>
 
       {activeTab === 'RM Home' && <RoleDashboard roleName={userRole} />}
+      {activeTab === 'Priority Modules' && <PriorityModules />}
       {activeTab === 'RM Visit Module' && <RMVisitDashboard />}
       {activeTab === 'Visit Calendar' && <RMVisitCalendar />}
       {activeTab === 'Important Links' && <QuickActionDesk />}
 
-      {!['RM Home', 'Important Links', 'RM Visit Module', 'Visit Calendar'].includes(activeTab) && (
+      {!['RM Home', 'Priority Modules', 'Important Links', 'RM Visit Module', 'Visit Calendar'].includes(activeTab) && (
         <ModulePlaceholder 
           title={`${activeTab} Interface`}
           message={`The digital environment for ${activeTab} is currently being synchronized with the backend systems. Full analytical capabilities will be available shortly.`}
@@ -168,9 +216,8 @@ export default function Dashboard() {
       )}
 
       <p className="text-[11px] text-[#64748B] p-4 bg-[#F8FAFC] rounded-2xl italic border border-[#F1F5F9]">
-        “Tools, resources, and policy links are centralized here for RM efficiency. Please ensure compliance and confirm information accuracy from official sources.”
+        "Tools, resources, and policy links are centralized here for RM efficiency. Please ensure compliance and confirm information accuracy from official sources."
       </p>
     </div>
   );
 }
-
