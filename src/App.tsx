@@ -28,12 +28,12 @@ import { AuthProvider, useAuth } from './lib/AuthContext';
 import { Construction, Loader } from 'lucide-react';
 
 const UnderConstruction = ({ title }: { title: string }) => (
-  <div className="flex flex-col items-center justify-center h-full text-center p-12 bg-white rounded-3xl border border-dashed border-[#E2E8F0]">
-    <div className="w-16 h-16 bg-[#F8FAFC] rounded-2xl flex items-center justify-center mb-6 text-[#94A3B8]">
+  <div className="flex flex-col items-center justify-center h-full text-center p-12 bg-white dark:bg-[#1E293B] rounded-3xl border border-dashed border-[#E2E8F0] dark:border-white/10">
+    <div className="w-16 h-16 bg-[#F8FAFC] dark:bg-white/5 rounded-2xl flex items-center justify-center mb-6 text-[#94A3B8]">
       <Construction size={32} />
     </div>
-    <h2 className="text-2xl font-bold text-[#0F172A] mb-2">{title}</h2>
-    <p className="text-[#64748B] max-w-md mx-auto">
+    <h2 className="text-2xl font-bold text-[#0F172A] dark:text-white mb-2">{title}</h2>
+    <p className="text-[#64748B] dark:text-slate-400 max-w-md mx-auto">
       This module is currently being redesigned for the modern PBMS Remix experience. 
       Please refer to the User Manual v1.0 for feature specifications.
     </p>

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, ReactNode } from 'react';
+import { useState, ReactNode, type JSX } from 'react';
 import PageBackground, { PageVariant } from './PageBackground';
 import { 
   Users, 
@@ -24,11 +24,15 @@ import {
   FileText,
   BarChart3,
   Handshake,
-  Smartphone
+  Smartphone,
+  Sun,
+  Moon,
+  Monitor
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
+import { useTheme } from '../lib/ThemeContext';
 
 function getPageVariant(pathname: string): PageVariant {
   if (pathname === '/') return 'dashboard';
@@ -97,6 +101,43 @@ const sidebarItems = [
   { id: 'mobile-app', label: 'Mobile App', icon: Smartphone, path: '/mobile-app' },
 ];
 
+type Theme = 'light' | 'dark' | 'system';
+
+const themeOrder: Theme[] = ['light', 'dark', 'system'];
+
+const ThemeToggle = () => {
+  const { theme, setTheme } = useTheme();
+
+  const cycleTheme = () => {
+    const currentIndex = themeOrder.indexOf(theme);
+    const nextIndex = (currentIndex + 1) % themeOrder.length;
+    setTheme(themeOrder[nextIndex]);
+  };
+
+  const icons: Record<Theme, JSX.Element> = {
+    light: <Sun size={18} />,
+    dark: <Moon size={18} />,
+    system: <Monitor size={18} />,
+  };
+
+  const labels: Record<Theme, string> = {
+    light: 'Light',
+    dark: 'Dark',
+    system: 'System',
+  };
+
+  return (
+    <button
+      onClick={cycleTheme}
+      title={`Theme: ${labels[theme]} — click to cycle`}
+      className="flex items-center gap-1.5 px-3 py-1.5 text-[#64748B] hover:bg-[#F1F5F9] dark:hover:bg-white/5 hover:text-[#0F172A] dark:hover:text-white rounded-full transition-colors text-xs font-semibold"
+    >
+      {icons[theme]}
+      <span className="hidden sm:inline">{labels[theme]}</span>
+    </button>
+  );
+};
+
 export default function Layout({ children }: { children: ReactNode }) {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
@@ -118,7 +159,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="flex h-screen bg-[#F8FAFC] overflow-hidden font-sans text-[#1E293B]">
+    <div className="flex h-screen bg-[#F8FAFC] dark:bg-[#0F172A] overflow-hidden font-sans text-[#1E293B] dark:text-[#F8FAFC]">
       {/* Sidebar */}
       <motion.aside 
         initial={false}
@@ -267,7 +308,8 @@ export default function Layout({ children }: { children: ReactNode }) {
             )}
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
             <button className="p-2 text-[#64748B] hover:bg-[#F1F5F9] dark:hover:bg-white/5 rounded-full transition-colors relative">
               <Bell size={20} />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-[#0F172A]"></span>
