@@ -12,13 +12,15 @@ import { useNavigate, Link } from 'react-router-dom';
 import { 
   signInWithEmailAndPassword, 
   updatePassword, 
-  onAuthStateChanged,
   signOut
 } from 'firebase/auth';
 import { 
-  doc, 
-  getDoc, 
+  collection,
+  query,
+  where,
+  getDocs,
   updateDoc, 
+  doc,
   serverTimestamp 
 } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
@@ -46,9 +48,9 @@ export default function Login() {
     if (user) {
       const checkUserStatus = async () => {
         try {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists()) {
-            const data = userDoc.data();
+          const usersSnap = await getDocs(query(collection(db, 'users'), where('uid', '==', user.uid)));
+          if (!usersSnap.empty) {
+            const data = usersSnap.docs[0].data();
             const lastChanged = data.passwordLastChanged?.toDate() || new Date(0);
             const daysSinceChange = (Date.now() - lastChanged.getTime()) / (1000 * 60 * 60 * 24);
             
@@ -65,32 +67,6 @@ export default function Login() {
       checkUserStatus();
     }
   }, [user, navigate]);
-
-  const handleTestLogin = async () => {
-    // Development mode test login - works without Firebase email/password enabled
-    if (email === 'bankasia.prioritybanking@gmail.com' && password === 'Admin@123456') {
-      setIsLoading(true);
-      try {
-        // Simulate successful login by storing test auth token
-        localStorage.setItem('pbms_test_auth', 'true');
-        localStorage.setItem('pbms_test_user', email);
-        
-        // Delay to show loading state
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Redirect to dashboard
-        navigate('/');
-        setError(null);
-      } catch (err) {
-        setError('Test login failed');
-      } finally {
-        setIsLoading(false);
-      }
-    } else {
-      return false;
-    }
-    return true;
-  };
 
   const handleForgotPassword = (e: FormEvent) => {
     e.preventDefault();
@@ -151,24 +127,19 @@ export default function Login() {
       return;
     }
 
-    // Try test login first (development mode)
-    if (await handleTestLogin()) {
-      return;
-    }
-
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      if (!userDoc.exists()) {
+
+      const usersSnap = await getDocs(query(collection(db, 'users'), where('uid', '==', user.uid)));
+      if (usersSnap.empty) {
         await signOut(auth);
         setError("Unauthorized user profile. Please contact IT.");
         setIsLoading(false);
         return;
       }
 
-      const data = userDoc.data();
+      const data = usersSnap.docs[0].data();
       const lastChanged = data.passwordLastChanged?.toDate() || new Date(0);
       const daysSinceChange = (Date.now() - lastChanged.getTime()) / (1000 * 60 * 60 * 24);
 
@@ -206,12 +177,14 @@ export default function Login() {
       const user = auth.currentUser;
       if (user) {
         await updatePassword(user, newPassword);
-        await updateDoc(doc(db, 'users', user.uid), {
-          mustChangePassword: false,
-          passwordLastChanged: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        });
-        
+        const usersSnap = await getDocs(query(collection(db, 'users'), where('uid', '==', user.uid)));
+        if (!usersSnap.empty) {
+          await updateDoc(doc(db, 'users', usersSnap.docs[0].id), {
+            mustChangePassword: false,
+            passwordLastChanged: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
+        }
         navigate('/');
       }
     } catch (err: any) {
@@ -381,27 +354,6 @@ export default function Login() {
                   <p className="text-sm text-[#64748B]">Authenticated system entry for relationship staff</p>
                 </div>
 
-                {/* Demo Access — prominently at top */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    localStorage.setItem('pbms_auth', 'true');
-                    navigate('/');
-                  }}
-                  className="w-full border-2 border-[#D4AF37] bg-[#D4AF37]/10 text-[#0F172A] py-4 rounded-[24px] font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#D4AF37]/20 transition-all"
-                >
-                  <ShieldCheck size={18} className="text-[#D4AF37]" />
-                  <span>Demo Access <span className="font-normal text-[#64748B] text-xs">— enter without credentials</span></span>
-                </button>
-
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-[#E2E8F0]" />
-                  </div>
-                  <div className="relative flex justify-center text-[10px]">
-                    <span className="bg-white px-3 text-[#94A3B8] font-bold uppercase tracking-widest">or sign in with Firebase</span>
-                  </div>
-                </div>
 
                 <div className="space-y-6">
                   <div className="space-y-2">

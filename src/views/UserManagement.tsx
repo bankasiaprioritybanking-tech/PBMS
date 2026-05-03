@@ -37,7 +37,7 @@ import {
   where,
   getDocs
 } from 'firebase/firestore';
-import { updatePassword } from 'firebase/auth';
+import { updatePassword, getIdToken } from 'firebase/auth';
 import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { format } from 'date-fns';
 import PageHeader from '../components/shared/PageHeader';
@@ -448,13 +448,19 @@ export default function UserManagement() {
   const handleResetPassword = async (user: User) => {
     setIsLoading(true);
     try {
+      const currentUser = auth.currentUser;
+      if (!currentUser) throw new Error('Not authenticated.');
+      const idToken = await getIdToken(currentUser);
+
       const response = await fetch('/api/v1/users/reset-password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
         body: JSON.stringify({ 
           email: user.email, 
-          userId: user.uid,
-          adminId: auth.currentUser?.uid
+          userId: user.uid
         })
       });
       
@@ -638,28 +644,50 @@ export default function UserManagement() {
 
     setIsLoading(true);
     try {
-      const hash = await sha256(inviteForm.tempPassword);
-      const now = new Date();
-      const expiresAt = new Date(now.getTime() + 72 * 60 * 60 * 1000);
-      await addDoc(collection(db, 'invitations'), {
-        name: inviteForm.name,
-        userId: inviteForm.userId,
-        email: inviteForm.email.trim(),
-        phone: inviteForm.phone,
-        branch: inviteForm.branch,
-        division: inviteForm.division,
-        functionalDesignation: inviteForm.functionalDesignation,
-        roleIds: inviteForm.roleIds,
-        tempPasswordHash: hash,
-        invitedByUid: auth.currentUser?.uid || '',
-        createdAt: serverTimestamp(),
-        expiresAt: expiresAt.toISOString(),
-        status: 'pending'
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        setInviteEmailError('You must be signed in to send invitations.');
+        setIsLoading(false);
+        return;
+      }
+      const idToken = await getIdToken(currentUser);
+
+      const inviteRes = await fetch('/api/v1/users/invite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({
+          email: inviteForm.email.trim(),
+          tempPassword: inviteForm.tempPassword,
+          name: inviteForm.name,
+          userId: inviteForm.userId,
+          phone: inviteForm.phone,
+          branch: inviteForm.branch,
+          division: inviteForm.division,
+          functionalDesignation: inviteForm.functionalDesignation,
+          roleIds: inviteForm.roleIds
+        })
       });
+      const inviteData = await inviteRes.json();
+      if (!inviteRes.ok) {
+        setInviteEmailError(inviteData.error || 'Failed to send invitation.');
+        setIsLoading(false);
+        return;
+      }
+
+      await addDoc(collection(db, 'auditLogs'), {
+        userId: currentUser.uid,
+        action: 'send_invitation',
+        description: `Invitation sent to ${inviteForm.name} (${inviteForm.email.trim()})`,
+        createdAt: serverTimestamp()
+      });
+
       setInviteSuccess({ tempPassword: inviteForm.tempPassword, name: inviteForm.name });
       setInviteForm({ name: '', userId: '', email: '', phone: '', branch: '', division: '', functionalDesignation: '', roleIds: [], tempPassword: '', confirmTempPassword: '' });
     } catch (error: any) {
-      handleFirestoreError(error, OperationType.CREATE, 'invitations');
+      setInviteEmailError(error.message || 'Invitation failed. Please try again.');
     } finally {
       setIsLoading(false);
     }

@@ -13,7 +13,7 @@ import {
   serverTimestamp
 } from 'firebase/firestore';
 import {
-  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
   updatePassword
 } from 'firebase/auth';
 import { db, auth } from '../lib/firebase';
@@ -95,7 +95,15 @@ export default function AcceptInvitation() {
       snap.forEach(d => {
         const data = d.data();
         if (data.tempPasswordHash === tempHash) {
-          const expiresAt = data.expiresAt?.toDate?.() || new Date(0);
+          // expiresAt may be a Firestore Timestamp or an ISO string (server-written)
+          let expiresAt: Date;
+          if (data.expiresAt?.toDate) {
+            expiresAt = data.expiresAt.toDate();
+          } else if (typeof data.expiresAt === 'string') {
+            expiresAt = new Date(data.expiresAt);
+          } else {
+            expiresAt = new Date(0);
+          }
           if (expiresAt > new Date()) {
             matchedDoc = { id: d.id, ...data };
           }
@@ -136,18 +144,21 @@ export default function AcceptInvitation() {
     }
 
     try {
-      const inviteSnap = await getDocs(query(
+      if (!invitationId) throw new Error('Invitation session expired. Please start over.');
+
+      const inviteDocSnap = await getDocs(query(
         collection(db, 'invitations'),
-        where('email', '==', email.toLowerCase().trim()),
         where('status', '==', 'pending')
       ));
+      const matchedInviteDoc = inviteDocSnap.docs.find(d => d.id === invitationId);
+      if (!matchedInviteDoc) throw new Error('Invitation no longer valid.');
 
-      if (inviteSnap.empty) throw new Error('Invitation no longer valid.');
+      const inviteData = matchedInviteDoc.data();
 
-      const inviteData = inviteSnap.docs[0].data();
-
-      const userCredential = await createUserWithEmailAndPassword(auth, email.toLowerCase().trim(), newPassword);
+      const userCredential = await signInWithEmailAndPassword(auth, email.toLowerCase().trim(), tempPassword);
       const user = userCredential.user;
+
+      await updatePassword(user, newPassword);
 
       await addDoc(collection(db, 'users'), {
         uid: user.uid,
@@ -167,26 +178,26 @@ export default function AcceptInvitation() {
         updatedAt: serverTimestamp()
       });
 
-      if (invitationId) {
-        await updateDoc(doc(db, 'invitations', invitationId), {
-          status: 'accepted',
-          acceptedAt: serverTimestamp()
-        });
-      }
+      await updateDoc(doc(db, 'invitations', invitationId), {
+        status: 'accepted',
+        acceptedAt: serverTimestamp()
+      });
 
       await addDoc(collection(db, 'auditLogs'), {
         userId: user.uid,
         action: 'accept_invitation',
-        description: `${inviteData.name} accepted invitation and created account.`,
+        description: `${inviteData.name} accepted invitation and activated account.`,
         createdAt: serverTimestamp()
       });
 
       setSuccess(true);
     } catch (err: any) {
-      if (err.code === 'auth/email-already-in-use') {
-        setError('An account with this email already exists. Please contact your administrator.');
+      if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        setError('Temporary password mismatch. Please contact your administrator.');
+      } else if (err.code === 'auth/user-not-found') {
+        setError('No Firebase account found. The invitation may not have been processed correctly. Please contact IT.');
       } else {
-        setError(err.message || 'Failed to create account. Please try again.');
+        setError(err.message || 'Failed to activate account. Please try again.');
       }
     } finally {
       setIsLoading(false);
