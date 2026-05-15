@@ -17,6 +17,7 @@ import {
 import { readFileSync } from 'fs';
 import { createHash } from 'crypto';
 import admin from 'firebase-admin';
+import { setupAuth, registerAuthRoutes } from './server/replit_integrations/auth/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -107,6 +108,10 @@ async function startServer() {
   const PORT = parseInt(process.env.PORT || '5000', 10);
 
   expressApp.use(express.json());
+
+  // Replit Auth — must be set up BEFORE all other routes
+  await setupAuth(expressApp);
+  registerAuthRoutes(expressApp);
 
   // API v1: Create Firebase Auth user + Firestore invitation atomically (Admin SDK, requires Admin role)
   expressApp.post('/api/v1/users/invite', requireAdminRole, async (req, res) => {

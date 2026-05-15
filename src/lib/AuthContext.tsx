@@ -1,36 +1,42 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
-import { auth } from './firebase';
+
+interface ReplitUser {
+  id: string;
+  email?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  profileImageUrl?: string | null;
+}
 
 interface AuthContextType {
-  user: User | null;
+  user: ReplitUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  logout: () => Promise<void>;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<ReplitUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setIsLoading(false);
-    });
-    return unsubscribe;
+    fetch('/api/auth/user', { credentials: 'include' })
+      .then(async (res) => {
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data);
+        } else {
+          setUser(null);
+        }
+      })
+      .catch(() => setUser(null))
+      .finally(() => setIsLoading(false));
   }, []);
 
-  const logout = async () => {
-    try {
-      await firebaseSignOut(auth);
-      setUser(null);
-    } catch (error) {
-      console.error('Logout error:', error);
-      throw error;
-    }
+  const logout = () => {
+    window.location.href = '/api/logout';
   };
 
   return (

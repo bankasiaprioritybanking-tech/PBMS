@@ -41,6 +41,24 @@ A full-stack React + Express web application for Priority Banking Management. Bu
 - **SMS Gateway**: SMS notifications
 - **System Setup**: Configuration and parameter entry
 
+## Auth
+
+- **Replit Auth** (primary): OpenID Connect via `openid-client` + `passport`. Routes:
+  - `GET /api/login` — Begin Replit OAuth flow
+  - `GET /api/callback` — OAuth callback (handled by passport)
+  - `GET /api/logout` — Sign out + redirect to Replit OIDC end-session
+  - `GET /api/auth/user` — Returns current authenticated user (JSON)
+- Sessions stored in **PostgreSQL** (`sessions` table via `connect-pg-simple`)
+- User profiles stored in **PostgreSQL** (`users` table via Drizzle ORM)
+- **Firebase Auth** (legacy): still used for staff invitation + RBAC admin flows
+
+## Database
+
+- **PostgreSQL** (Replit-managed): `DATABASE_URL` env var set automatically
+- **Drizzle ORM**: schema in `shared/schema.ts`, config in `drizzle.config.ts`
+- Run `npm run db:push` to push schema changes
+- **Firebase Firestore**: used for invitations, roles, permissions, audit logs
+
 ## API Endpoints
 
 - `POST /api/v1/users/onboard` — Onboard new staff with temp credentials
