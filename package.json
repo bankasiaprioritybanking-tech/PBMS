@@ -47,7 +47,8 @@
   "overrides": {
     "uuid": "^14.0.0",
     "@tootallnate/once": "^3.0.1",
-    "qs": "^6.15.1"
+    "qs": "^6.15.1",
+    "esbuild": "^0.25.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
