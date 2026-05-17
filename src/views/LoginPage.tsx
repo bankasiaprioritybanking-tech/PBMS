@@ -693,19 +693,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative', overflowX: 'hidden' }}>
       {/* Floating controls — icon-only on mobile, labelled on desktop */}
       <div style={{
         position: 'fixed', top: 12, right: 12, zIndex: 9999,
         display: 'flex', gap: 6, alignItems: 'center',
       }}>
         <button onClick={cycleTheme} title="Toggle theme"
+          aria-label={`Switch theme, current: ${themeLabel}`}
           style={{ ...btnBase, gap: isMobile ? 0 : 6, padding: isMobile ? '8px' : '7px 12px' }}>
           {themeIcon}
           {!isMobile && themeLabel}
         </button>
 
         <button onClick={toggleLayout} title="Switch layout"
+          aria-label={`Switch to layout ${layout === 1 ? '2' : '1'}`}
           style={{ ...btnBase, gap: isMobile ? 0 : 6, padding: isMobile ? '8px' : '7px 12px' }}>
           {layout === 1 ? <LayoutGrid size={14} /> : <Rows size={14} />}
           {!isMobile && `Layout ${layout === 1 ? '2' : '1'}`}
