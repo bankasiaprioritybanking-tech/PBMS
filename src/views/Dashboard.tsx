@@ -354,13 +354,13 @@ export default function Dashboard() {
   return (
     <div className="space-y-8 pb-12">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div className="flex items-center gap-6">
-          <div className="w-16 h-16 bg-[#0F172A] rounded-[24px] flex items-center justify-center text-[#D4AF37] font-bold text-3xl shadow-xl shadow-[#D4AF37]/5 border border-white/5">
+        <div className="flex items-center gap-4 sm:gap-6">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 bg-[#0F172A] rounded-[20px] sm:rounded-[24px] flex items-center justify-center text-[#D4AF37] font-bold text-2xl sm:text-3xl shadow-xl shadow-[#D4AF37]/5 border border-white/5 shrink-0">
             P
           </div>
-          <div className="space-y-1">
-            <h4 className="text-[10px] uppercase tracking-[0.4em] font-bold text-[#D4AF37]">The Pinnacle of Personalized Banking</h4>
-            <h1 className="text-4xl font-display font-medium text-[#0F172A] dark:text-white italic">Good morning, <span className="not-italic font-bold">John Doe</span></h1>
+          <div className="space-y-1 min-w-0">
+            <h4 className="text-[9px] sm:text-[10px] uppercase tracking-[0.3em] sm:tracking-[0.4em] font-bold text-[#D4AF37]">The Pinnacle of Personalized Banking</h4>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-display font-medium text-[#0F172A] dark:text-white italic">Good morning, <span className="not-italic font-bold">John Doe</span></h1>
             <p className="text-[#64748B] dark:text-slate-400 text-sm flex items-center gap-2">
               <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
               PBMS Secure // RM Session Active

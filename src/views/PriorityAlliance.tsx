@@ -356,7 +356,7 @@ export default function PriorityAlliance() {
           }} />
         </div>
 
-        <div className="relative z-10 p-12 flex flex-col md:flex-row md:items-center gap-8 w-full">
+        <div className="relative z-10 p-6 sm:p-10 lg:p-12 flex flex-col md:flex-row md:items-center gap-8 w-full">
           <div className="flex-1">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -364,12 +364,12 @@ export default function PriorityAlliance() {
               transition={{ delay: 0.1 }}
             >
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-2xl bg-[#D4AF37] flex items-center justify-center">
+                <div className="w-10 h-10 rounded-2xl bg-[#D4AF37] flex items-center justify-center shrink-0">
                   <Handshake size={20} className="text-[#0F172A]" />
                 </div>
-                <span className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-[0.4em]">Strategic Alliance Program</span>
+                <span className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-[0.3em] sm:tracking-[0.4em]">Strategic Alliance Program</span>
               </div>
-              <h1 className="text-4xl font-display font-bold text-white italic mb-4 leading-tight">
+              <h1 className="text-3xl sm:text-4xl font-display font-bold text-white italic mb-4 leading-tight">
                 Priority <span className="not-italic text-[#D4AF37]">Alliance</span> Network
               </h1>
               <p className="text-slate-400 text-sm leading-relaxed max-w-lg">
@@ -381,7 +381,7 @@ export default function PriorityAlliance() {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3 }}
-            className="flex gap-6"
+            className="flex gap-4 sm:gap-6 flex-wrap"
           >
             {[
               { icon: Globe, label: 'Global Partners', value: '6+' },
@@ -389,10 +389,10 @@ export default function PriorityAlliance() {
               { icon: Award, label: 'Benefits', value: '40+' },
             ].map(stat => (
               <div key={stat.label} className="text-center">
-                <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center text-[#D4AF37] mx-auto mb-2 border border-white/10">
-                  <stat.icon size={28} />
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/10 flex items-center justify-center text-[#D4AF37] mx-auto mb-2 border border-white/10">
+                  <stat.icon size={24} className="sm:w-7 sm:h-7" />
                 </div>
-                <p className="text-2xl font-bold text-white">{stat.value}</p>
+                <p className="text-xl sm:text-2xl font-bold text-white">{stat.value}</p>
                 <p className="text-[9px] text-slate-400 uppercase tracking-widest font-bold">{stat.label}</p>
               </div>
             ))}
@@ -452,7 +452,7 @@ export default function PriorityAlliance() {
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="bg-gradient-to-r from-[#0F172A] to-[#1E293B] rounded-[32px] p-10 flex flex-col md:flex-row md:items-center gap-8 border border-white/10"
+              className="bg-gradient-to-r from-[#0F172A] to-[#1E293B] rounded-[32px] p-6 sm:p-10 flex flex-col md:flex-row md:items-center gap-8 border border-white/10"
             >
               <div className="flex-1">
                 <p className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-[0.3em] mb-3">Partnership Framework</p>
@@ -515,7 +515,7 @@ export default function PriorityAlliance() {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="bg-white dark:bg-[#1E293B] rounded-[24px] border border-[#E2E8F0] dark:border-white/10 p-6 flex gap-6 hover:shadow-xl hover:shadow-[#D4AF37]/5 transition-all cursor-pointer group"
+                className="bg-white dark:bg-[#1E293B] rounded-[24px] border border-[#E2E8F0] dark:border-white/10 p-4 sm:p-6 flex gap-4 sm:gap-6 hover:shadow-xl hover:shadow-[#D4AF37]/5 transition-all cursor-pointer group"
               >
                 <div className="w-16 h-16 rounded-2xl bg-[#F8FAFC] dark:bg-white/5 flex items-center justify-center text-[#D4AF37] shrink-0 group-hover:bg-[#D4AF37]/10 transition-colors">
                   <Newspaper size={28} />

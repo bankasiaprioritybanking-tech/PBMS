@@ -69,32 +69,32 @@ export default function MobileApp() {
   return (
     <div className="space-y-12 pb-16">
       {/* Hero */}
-      <div className="relative bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0F172A] rounded-[40px] overflow-hidden p-12">
+      <div className="relative bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0F172A] rounded-[28px] sm:rounded-[40px] overflow-hidden p-6 sm:p-10 lg:p-12">
         <div className="absolute inset-0 opacity-20">
           <div className="absolute top-0 left-0 w-96 h-96 rounded-full blur-[100px]" style={{ background: '#D4AF37' }} />
           <div className="absolute bottom-0 right-0 w-72 h-72 rounded-full blur-[80px]" style={{ background: '#6366f1' }} />
         </div>
 
-        <div className="relative z-10 flex flex-col lg:flex-row items-center gap-12">
-          <div className="flex-1">
+        <div className="relative z-10 flex flex-col lg:flex-row items-center gap-8 lg:gap-12">
+          <div className="flex-1 w-full">
             <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
               <div className="flex items-center gap-2 mb-4">
                 <Smartphone size={20} className="text-[#D4AF37]" />
                 <span className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-[0.4em]">Mobile Banking App</span>
               </div>
-              <h1 className="text-4xl font-display font-bold text-white italic mb-4 leading-tight">
+              <h1 className="text-3xl sm:text-4xl font-display font-bold text-white italic mb-4 leading-tight">
                 Priority Banking<br /><span className="not-italic text-[#D4AF37]">In Your Pocket</span>
               </h1>
               <p className="text-slate-400 text-sm leading-relaxed mb-8 max-w-md">
                 The Bank Asia Priority Banking app brings the full power of private banking to your fingertips — secure, intelligent, and beautifully designed for iOS and Android.
               </p>
 
-              <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap">
                 <motion.a
                   href="#"
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
-                  className="flex items-center gap-3 bg-white text-[#0F172A] px-6 py-4 rounded-2xl font-bold text-sm shadow-xl hover:shadow-2xl transition-all"
+                  className="flex items-center gap-3 bg-white text-[#0F172A] px-5 py-3 sm:px-6 sm:py-4 rounded-2xl font-bold text-sm shadow-xl hover:shadow-2xl transition-all"
                 >
                   <Apple size={22} />
                   <div>
@@ -107,7 +107,7 @@ export default function MobileApp() {
                   href="#"
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
-                  className="flex items-center gap-3 bg-[#D4AF37] text-[#0F172A] px-6 py-4 rounded-2xl font-bold text-sm shadow-xl hover:shadow-2xl transition-all"
+                  className="flex items-center gap-3 bg-[#D4AF37] text-[#0F172A] px-5 py-3 sm:px-6 sm:py-4 rounded-2xl font-bold text-sm shadow-xl hover:shadow-2xl transition-all"
                 >
                   <PlayIcon />
                   <div>
@@ -117,7 +117,7 @@ export default function MobileApp() {
                 </motion.a>
               </div>
 
-              <div className="flex items-center gap-6 mt-8">
+              <div className="flex items-center gap-4 sm:gap-6 mt-8">
                 <div className="text-center">
                   <div className="flex items-center gap-1 justify-center mb-1">
                     {[1,2,3,4,5].map(s => <Star key={s} size={12} className="text-[#D4AF37] fill-[#D4AF37]" />)}
@@ -139,10 +139,15 @@ export default function MobileApp() {
             </motion.div>
           </div>
 
-          {/* Phone mockups */}
+          {/* Phone mockups — show 1 on mobile, 2 on sm, 3 on lg */}
           <div className="flex items-end gap-4 shrink-0">
             {screenshots.map((screen, i) => (
-              <PhoneMockup key={screen.label} screen={screen} index={i} />
+              <div
+                key={screen.label}
+                className={i === 0 ? 'block' : i === 1 ? 'hidden sm:block' : 'hidden lg:block'}
+              >
+                <PhoneMockup screen={screen} index={i} />
+              </div>
             ))}
           </div>
         </div>
