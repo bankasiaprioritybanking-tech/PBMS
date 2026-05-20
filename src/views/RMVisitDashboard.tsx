@@ -55,6 +55,36 @@ export default function RMVisitDashboard() {
       </div>
       
       <div className="bg-white p-8 rounded-[32px] border border-[#E2E8F0] shadow-sm">
+        <h3 className="text-lg font-bold text-[#0F172A] mb-6">Upcoming Tasks & Follow-ups</h3>
+        <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-[#F8FAFC] rounded-2xl border border-[#E2E8F0]">
+                <div className="flex items-center gap-4">
+                    <div className="p-3 bg-white rounded-full border">
+                        <Clock size={20} className="text-[#D4AF37]" />
+                    </div>
+                    <div>
+                        <p className="font-bold text-[#0F172A]">Follow-up with John Doe</p>
+                        <p className="text-xs text-[#64748B]">Due: 2026-05-02</p>
+                    </div>
+                </div>
+                <button className="text-sm font-bold text-[#D4AF37]">View Task</button>
+            </div>
+            <div className="flex items-center justify-between p-4 bg-[#F8FAFC] rounded-2xl border border-[#E2E8F0]">
+                <div className="flex items-center gap-4">
+                    <div className="p-3 bg-white rounded-full border">
+                        <Clock size={20} className="text-[#D4AF37]" />
+                    </div>
+                    <div>
+                        <p className="font-bold text-[#0F172A]">Call Alice Jones</p>
+                        <p className="text-xs text-[#64748B]">Due: 2026-05-04</p>
+                    </div>
+                </div>
+                <button className="text-sm font-bold text-[#D4AF37]">View Task</button>
+            </div>
+        </div>
+      </div>
+        
+      <div className="bg-white p-8 rounded-[32px] border border-[#E2E8F0] shadow-sm">
         <h3 className="text-lg font-bold text-[#0F172A] mb-4">Visit Activity Overview</h3>
         <p className="text-sm text-[#64748B]">CRM data visualization will be implemented here for visit trends and pipeline analysis.</p>
       </div>

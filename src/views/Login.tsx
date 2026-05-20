@@ -4,40 +4,50 @@ import {
   ChevronRight, 
   ShieldCheck,
   Building2,
-  AlertCircle
+  AlertCircle,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, FormEvent, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { 
   signInWithEmailAndPassword, 
   updatePassword, 
+  onAuthStateChanged,
   signOut
 } from 'firebase/auth';
 import { 
-  collection,
-  query,
-  where,
-  getDocs,
+  doc, 
+  getDoc, 
   updateDoc, 
-  doc,
   serverTimestamp 
 } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
-import { useAuth } from '../lib/AuthContext';
 
-export default function Login() {
-  const [email, setEmail] = useState('');
+export default function Login({ onLogin }: { onLogin?: () => void }) {
+  const [email, setEmail] = useState(() => localStorage.getItem('pbms_user_email') || '');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(!!localStorage.getItem('pbms_user_email'));
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   
   const [step, setStep] = useState(1); // 1: Credentials, 2: Change Password (First/Expired)
+  
+  // Persist email
+  useEffect(() => {
+    if (rememberMe) {
+      localStorage.setItem('pbms_user_email', email);
+    } else {
+      localStorage.removeItem('pbms_user_email');
+    }
+  }, [rememberMe, email]);
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [forgotPasswordStep, setForgotPasswordStep] = useState(0); 
   const navigate = useNavigate();
-  const { user } = useAuth();
 
   // Domain lock constant
   const ALLOWED_DOMAIN = 'bankasia-bd.com';
@@ -45,28 +55,30 @@ export default function Login() {
 
   useEffect(() => {
     // Check if user is already logged in and needs redirect or has expired password
-    if (user) {
-      const checkUserStatus = async () => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
         try {
-          const usersSnap = await getDocs(query(collection(db, 'users'), where('uid', '==', user.uid)));
-          if (!usersSnap.empty) {
-            const data = usersSnap.docs[0].data();
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
             const lastChanged = data.passwordLastChanged?.toDate() || new Date(0);
             const daysSinceChange = (Date.now() - lastChanged.getTime()) / (1000 * 60 * 60 * 24);
             
             if (data.mustChangePassword || daysSinceChange > 30) {
               setStep(2);
             } else {
+              localStorage.setItem('pbms_auth', 'true');
+              if (onLogin) onLogin();
               navigate('/');
             }
           }
         } catch (err) {
           console.error("Auth check error:", err);
         }
-      };
-      checkUserStatus();
-    }
-  }, [user, navigate]);
+      }
+    });
+    return unsubscribe;
+  }, [navigate, onLogin]);
 
   const handleForgotPassword = (e: FormEvent) => {
     e.preventDefault();
@@ -80,6 +92,10 @@ export default function Login() {
         setStep(1);
       }
     }, 1000);
+  };
+
+  const validateEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
 
   const validatePassword = (pass: string) => {
@@ -120,6 +136,13 @@ export default function Login() {
     setIsLoading(true);
     setError(null);
 
+    // Validate email format
+    if (!validateEmail(email)) {
+      setError("Please enter a valid email address.");
+      setIsLoading(false);
+      return;
+    }
+
     // Validate Domain
     if (!email.endsWith(ALLOWED_DOMAIN) && email !== ADMIN_EXCEPTION) {
       setError(`Access restricted to @${ALLOWED_DOMAIN} accounts.`);
@@ -130,22 +153,24 @@ export default function Login() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
-      const usersSnap = await getDocs(query(collection(db, 'users'), where('uid', '==', user.uid)));
-      if (usersSnap.empty) {
+      
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      if (!userDoc.exists()) {
         await signOut(auth);
         setError("Unauthorized user profile. Please contact IT.");
         setIsLoading(false);
         return;
       }
 
-      const data = usersSnap.docs[0].data();
+      const data = userDoc.data();
       const lastChanged = data.passwordLastChanged?.toDate() || new Date(0);
       const daysSinceChange = (Date.now() - lastChanged.getTime()) / (1000 * 60 * 60 * 24);
 
       if (data.mustChangePassword || daysSinceChange > 30) {
         setStep(2);
       } else {
+        localStorage.setItem('pbms_auth', 'true');
+        if (onLogin) onLogin();
         navigate('/');
       }
     } catch (err: any) {
@@ -177,14 +202,14 @@ export default function Login() {
       const user = auth.currentUser;
       if (user) {
         await updatePassword(user, newPassword);
-        const usersSnap = await getDocs(query(collection(db, 'users'), where('uid', '==', user.uid)));
-        if (!usersSnap.empty) {
-          await updateDoc(doc(db, 'users', usersSnap.docs[0].id), {
-            mustChangePassword: false,
-            passwordLastChanged: serverTimestamp(),
-            updatedAt: serverTimestamp()
-          });
-        }
+        await updateDoc(doc(db, 'users', user.uid), {
+          mustChangePassword: false,
+          passwordLastChanged: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+        
+        localStorage.setItem('pbms_auth', 'true');
+        if (onLogin) onLogin();
         navigate('/');
       }
     } catch (err: any) {
@@ -195,18 +220,11 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0F172A] flex items-start justify-center p-6 py-12 relative overflow-y-auto font-sans">
+    <div className="min-h-screen bg-[#0F172A] flex items-center justify-center p-6 relative overflow-hidden font-sans">
       {/* Background Ambience */}
-      <div className="absolute top-0 left-0 w-full h-full">
-         <div className="absolute -top-24 -left-24 w-[600px] h-[600px] bg-[#D4AF37] rounded-full blur-[180px] opacity-10 animate-pulse" />
-         <div className="absolute -bottom-24 -right-24 w-[600px] h-[600px] bg-[#D4AF37] rounded-full blur-[180px] opacity-10 animate-pulse" />
-         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] opacity-[0.03] select-none pointer-events-none flex items-center justify-center">
-           <div className="text-center">
-             <p className="text-white font-serif italic text-[120px] leading-none font-bold tracking-tight whitespace-nowrap" style={{ textShadow: '0 0 80px rgba(212,175,55,0.3)' }}>Priority</p>
-             <p className="text-[#D4AF37] font-bold text-[48px] uppercase tracking-[0.5em] leading-none">Banking</p>
-             <p className="text-white/50 text-[14px] uppercase tracking-[0.4em] mt-4 font-bold">Bank Asia Limited</p>
-           </div>
-         </div>
+      <div className="absolute top-0 left-0 w-full h-full bg-black">
+         <div className="absolute -top-24 -left-24 w-[600px] h-[600px] bg-[#D4AF37] rounded-full blur-[180px] opacity-5 animate-pulse" />
+         <div className="absolute -bottom-24 -right-24 w-[600px] h-[600px] bg-[#D4AF37] rounded-full blur-[180px] opacity-5 animate-pulse" />
       </div>
 
       <div className="w-full max-w-[460px] relative z-10 flex flex-col gap-10">
@@ -218,10 +236,8 @@ export default function Login() {
         >
           <div className="relative inline-block">
              <div className="absolute inset-0 bg-[#D4AF37] rounded-[32px] blur-3xl opacity-20" />
-             <div className="relative w-32 h-32 bg-gradient-to-br from-[#D4AF37] via-[#F5E0A3] to-[#B8860B] rounded-[40px] mx-auto flex items-center justify-center text-[#0F172A] font-bold text-7xl shadow-2xl shadow-[#D4AF37]/40 border-4 border-white/20 transform hover:scale-105 transition-transform">
-               <span className="drop-shadow-lg">P</span>
-               {/* Decorative Ring */}
-               <div className="absolute inset-2 border border-white/30 rounded-[32px] pointer-events-none" />
+             <div className="relative w-32 h-32 mx-auto flex items-center justify-center">
+               <img src="/logo.png" alt="Bank Asia Logo" className="w-full h-full object-contain" />
              </div>
           </div>
           <div className="space-y-4">
@@ -258,7 +274,7 @@ export default function Login() {
                   </div>
                   <div className="space-y-6">
                     {error && (
-                      <div className="flex items-center gap-2 p-4 bg-red-50 text-red-600 rounded-2xl text-xs font-medium border border-red-100">
+                      <div role="alert" className="flex items-center gap-2 p-4 bg-red-50 text-red-600 rounded-2xl text-xs font-medium border border-red-100">
                         <AlertCircle size={14} />
                         {error}
                       </div>
@@ -354,7 +370,6 @@ export default function Login() {
                   <p className="text-sm text-[#64748B]">Authenticated system entry for relationship staff</p>
                 </div>
 
-
                 <div className="space-y-6">
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-[#64748B] uppercase tracking-[0.2em] ml-2">Access Username</label>
@@ -365,7 +380,7 @@ export default function Login() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="Ex: user@bankasia-bd.com"
-                        className="w-full pl-14 pr-6 py-5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[24px] outline-none focus:border-[#D4AF37] focus:ring-4 focus:ring-[#D4AF37]/5 transition-all text-sm font-medium text-black"
+                        className="w-full pl-14 pr-6 py-5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[24px] outline-none focus:border-[#D4AF37] focus:ring-4 focus:ring-[#D4AF37]/5 transition-all text-sm font-medium"
                       />
                     </div>
                   </div>
@@ -377,15 +392,35 @@ export default function Login() {
                     <div className="relative">
                       <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-[#94A3B8]" size={18} />
                       <input 
-                        type="password"
+                        type={showPassword ? 'text' : 'password'}
                         required
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full pl-14 pr-6 py-5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[24px] outline-none focus:border-[#D4AF37] focus:ring-4 focus:ring-[#D4AF37]/5 transition-all text-sm font-medium text-black"
+                        aria-label="Password"
+                        className="w-full pl-14 pr-16 py-5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-[24px] outline-none focus:border-[#D4AF37] focus:ring-4 focus:ring-[#D4AF37]/5 transition-all text-sm font-medium"
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        className="absolute right-5 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#0F172A]"
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
                     </div>
                   </div>
+                </div>
+
+                <div className="flex items-center gap-2 mb-6">
+                  <input
+                    type="checkbox"
+                    id="rememberMe"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border-gray-300 text-[#D4AF37] focus:ring-[#D4AF37]"
+                  />
+                  <label htmlFor="rememberMe" className="text-xs text-[#64748B]">Remember Me</label>
                 </div>
 
                 <button 
@@ -401,15 +436,6 @@ export default function Login() {
                     </>
                   )}
                 </button>
-
-                <div className="text-center pt-2">
-                  <Link 
-                    to="/accept-invitation" 
-                    className="text-[10px] font-bold text-[#94A3B8] hover:text-[#D4AF37] transition-colors uppercase tracking-[0.15em]"
-                  >
-                    Have an invite? Accept here →
-                  </Link>
-                </div>
               </motion.form>
             ) : (
               <motion.div

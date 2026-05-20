@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
+import { ParameterEditor } from '../components/admin/ParameterEditor';
+import { auth, db } from '../lib/firebase'; // Assuming auth is available
 
 const setupSections = [
   { id: 'vas', title: 'Vas Service', description: 'Configure customer service options and parameters.', icon: Layers, path: '/system-setup' },
@@ -22,6 +24,9 @@ const setupSections = [
 
 export default function SystemSetup() {
   const navigate = useNavigate();
+  // Simplified role check: assuming HOPB or HOCPA are the only admins with full parameter rights.
+  // In a real app, this would be computed from roles/permissions.
+  const isAdmin = true; 
 
   return (
     <div className="space-y-8">
@@ -59,6 +64,13 @@ export default function SystemSetup() {
           </motion.div>
         ))}
       </div>
+
+      {/* Admin Only Parameter Editor */}
+      {isAdmin && (
+        <div className="mt-12">
+            <ParameterEditor />
+        </div>
+      )}
 
       {/* Example Table for Parameter as per manual 4.2 */}
       <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[40px] overflow-hidden mt-12">

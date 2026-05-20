@@ -32,29 +32,29 @@ export default function DataTable<T extends { id: string | number }>({
   return (
     <div className="space-y-4">
       {/* Search & Filter Bar */}
-      <div className="bg-white dark:bg-[#1E293B] p-4 rounded-2xl border border-[#E2E8F0] dark:border-white/10 shadow-sm flex flex-col lg:flex-row gap-4 items-center">
+      <div className="bg-white p-4 rounded-2xl border border-[#E2E8F0] shadow-sm flex flex-col lg:flex-row gap-4 items-center">
         <div className="relative flex-1 w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]" size={18} />
           <input 
             type="text" 
             placeholder={searchPlaceholder} 
             onChange={(e) => onSearch?.(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#F1F5F9] dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-[#0F172A]/5 dark:focus:ring-white/10 bg-[#F8FAFC] dark:bg-white/5 text-sm font-medium text-[#0F172A] dark:text-white placeholder:text-[#94A3B8]"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#F1F5F9] focus:outline-none focus:ring-2 focus:ring-[#0F172A]/5 bg-[#F8FAFC] text-sm font-medium"
           />
         </div>
         <div className="flex items-center gap-2 w-full lg:w-auto">
-          <button className="p-2.5 text-[#64748B] hover:bg-[#F1F5F9] dark:hover:bg-white/10 rounded-xl transition-colors border border-transparent hover:border-[#E2E8F0] dark:hover:border-white/10">
+          <button className="p-2.5 text-[#64748B] hover:bg-[#F1F5F9] rounded-xl transition-colors border border-transparent hover:border-[#E2E8F0]">
             <Filter size={20} />
           </button>
         </div>
       </div>
 
       {/* Table Content */}
-      <div className="bg-white dark:bg-[#1E293B] rounded-3xl border border-[#E2E8F0] dark:border-white/10 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-3xl border border-[#E2E8F0] shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-[#F8FAFC] dark:bg-white/5">
+              <tr className="bg-[#F8FAFC]">
                 {onToggleSelect && (
                   <th className="px-6 py-4 w-10">
                     <input type="checkbox" checked={selectedIds?.length === data.length && data.length > 0} onChange={onToggleSelectAll} />
@@ -63,14 +63,14 @@ export default function DataTable<T extends { id: string | number }>({
                 {columns.map((col, i) => (
                   <th 
                     key={i} 
-                    className={`px-6 py-4 text-xs font-bold text-[#64748B] dark:text-slate-400 uppercase tracking-wider ${col.className || ''}`}
+                    className={`px-6 py-4 text-xs font-bold text-[#64748B] uppercase tracking-wider ${col.className || ''}`}
                   >
                     {col.header}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#F1F5F9] dark:divide-white/5">
+            <tbody className="divide-y divide-[#F1F5F9]">
               {isLoading ? (
                 <tr>
                   <td colSpan={columns.length + (onToggleSelect ? 1 : 0)} className="px-6 py-20 text-center text-[#94A3B8] italic text-sm">
@@ -88,7 +88,7 @@ export default function DataTable<T extends { id: string | number }>({
                 </tr>
               ) : (
                 data.map((row) => (
-                  <tr key={row.id} className="hover:bg-[#F8FAFC]/50 dark:hover:bg-white/5 transition-colors group cursor-default">
+                  <tr key={row.id} className="hover:bg-[#F8FAFC]/50 transition-colors group cursor-default">
                     {onToggleSelect && (
                       <td className="px-6 py-5">
                         <input type="checkbox" checked={selectedIds?.includes(row.id)} onChange={() => onToggleSelect?.(row.id)} />
@@ -106,12 +106,12 @@ export default function DataTable<T extends { id: string | number }>({
           </table>
         </div>
         {!isLoading && data.length > 0 && (
-          <div className="px-6 py-4 border-t border-[#F1F5F9] dark:border-white/5 bg-[#F8FAFC] dark:bg-white/5 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-[11px] font-bold text-[#64748B] dark:text-slate-400 uppercase tracking-[0.2em]">Showing {data.length} records</p>
+          <div className="px-6 py-4 border-t border-[#F1F5F9] bg-[#F8FAFC] flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-[11px] font-bold text-[#64748B] uppercase tracking-[0.2em]">Showing {data.length} records</p>
             <div className="flex items-center gap-2">
-              <button className="px-4 py-2 rounded-xl text-xs font-bold text-[#64748B] hover:bg-white dark:hover:bg-white/10 border border-[#E2E8F0] dark:border-white/10 transition-all disabled:opacity-50 uppercase tracking-widest" disabled>Prev</button>
+              <button className="px-4 py-2 rounded-xl text-xs font-bold text-[#64748B] hover:bg-white border border-[#E2E8F0] transition-all disabled:opacity-50 uppercase tracking-widest" disabled>Prev</button>
               <button className="w-8 h-8 rounded-xl text-xs font-bold bg-[#0F172A] text-[#D4AF37] border border-[#0F172A] shadow-lg shadow-[#0F172A]/10">1</button>
-              <button className="px-4 py-2 rounded-xl text-xs font-bold text-[#64748B] hover:bg-white dark:hover:bg-white/10 border border-[#E2E8F0] dark:border-white/10 transition-all uppercase tracking-widest">Next</button>
+              <button className="px-4 py-2 rounded-xl text-xs font-bold text-[#64748B] hover:bg-white border border-[#E2E8F0] transition-all uppercase tracking-widest">Next</button>
             </div>
           </div>
         )}

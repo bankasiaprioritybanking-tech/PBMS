@@ -145,6 +145,17 @@ export default function TaskManagement() {
     }
   };
 
+  const toggleTaskCompletion = async (task: Task) => {
+    try {
+      await updateDoc(doc(db, "tasks", task.id), {
+        status: task.status === "completed" ? "pending" : "completed",
+        updatedAt: serverTimestamp(),
+      });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, "tasks");
+    }
+  };
+
   const tasksByRequest = useMemo(() => {
     const map: Record<string, Task> = {};
     tasks.forEach((task) => {
@@ -457,6 +468,12 @@ export default function TaskManagement() {
                         </div>
 
                         <div className="flex gap-2">
+                          <button
+                            onClick={() => toggleTaskCompletion(linkedTask)}
+                            className={`p-2 bg-white border border-[#E2E8F0] shadow-sm ${linkedTask.status === "completed" ? "text-green-500 hover:bg-green-50" : "text-[#475569] hover:text-green-500 hover:bg-green-50"} rounded-xl transition-all`}
+                          >
+                            <CheckCircle2 size={16} />
+                          </button>
                           <button
                             onClick={() => {
                               setSelectedTask(linkedTask);
